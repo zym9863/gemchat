@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../services/gemini_service.dart';
@@ -27,14 +29,39 @@ class ChatProvider extends ChangeNotifier {
   String get errorMessage => _errorMessage;
   
   ChatProvider() {
-    _initSessions();
+    _loadSessions();
   }
   
-  void _initSessions() {
+  Future<void> _loadSessions() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sessionsJson = prefs.getStringList('chat_sessions') ?? [];
+    
+    if (sessionsJson.isNotEmpty) {
+      try {
+        _sessions.clear();
+        for (var sessionStr in sessionsJson) {
+          final sessionMap = jsonDecode(sessionStr);
+          _sessions.add(ChatSession.fromJson(sessionMap));
+        }
+        
+        // 加载当前会话ID
+        _currentSessionId = prefs.getString('current_session_id') ?? _sessions.first.id;
+        notifyListeners();
+      } catch (e) {
+        print('加载会话数据失败: $e');
+        _initDefaultSession();
+      }
+    } else {
+      _initDefaultSession();
+    }
+  }
+  
+  void _initDefaultSession() {
     if (_sessions.isEmpty) {
       final newSession = _createNewSession('新对话');
       _sessions.add(newSession);
       _currentSessionId = newSession.id;
+      notifyListeners();
     }
   }
   
@@ -55,12 +82,14 @@ class ChatProvider extends ChangeNotifier {
     final newSession = _createNewSession('新对话');
     _sessions.add(newSession);
     _currentSessionId = newSession.id;
+    _saveSessions();
     notifyListeners();
   }
   
   void switchSession(String sessionId) {
     if (_sessions.any((s) => s.id == sessionId)) {
       _currentSessionId = sessionId;
+      _saveSessions();
       notifyListeners();
     }
   }
@@ -90,7 +119,23 @@ class ChatProvider extends ChangeNotifier {
         updatedAt: DateTime.now(),
       );
       _sessions[index] = updatedSession;
+      _saveSessions();
       notifyListeners();
+    }
+  }
+  
+  Future<void> _saveSessions() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionsJson = _sessions.map((session) => jsonEncode(session.toJson())).toList();
+      await prefs.setStringList('chat_sessions', sessionsJson);
+      
+      // 保存当前会话ID
+      if (_currentSessionId != null) {
+        await prefs.setString('current_session_id', _currentSessionId!);
+      }
+    } catch (e) {
+      print('保存会话数据失败: $e');
     }
   }
 
@@ -212,9 +257,11 @@ class ChatProvider extends ChangeNotifier {
           _currentSessionId = _sessions.first.id;
         } else {
           createNewSession();
+          return; // createNewSession已经调用了_saveSessions
         }
       }
       
+      _saveSessions();
       notifyListeners();
     }
   }

@@ -22,4 +22,22 @@ class ChatMessage {
       isUser: false,
     );
   }
+  
+  // 序列化为JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'content': content,
+      'isUser': isUser,
+      'timestamp': timestamp.millisecondsSinceEpoch,
+    };
+  }
+  
+  // 从JSON反序列化
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      content: json['content'],
+      isUser: json['isUser'],
+      timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp']),
+    );
+  }
 }
