@@ -18,7 +18,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isSidebarExpanded = true; // 控制侧边栏是否展开
-
   @override
   void initState() {
     super.initState();
@@ -26,8 +25,12 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkApiKey();
     });
+    
+    // 添加键盘焦点监听
+    _messageController.addListener(() {
+      setState(() {});
+    });
   }
-
   Future<void> _checkApiKey() async {
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
     final hasKey = await chatProvider.hasApiKey();
@@ -41,41 +44,35 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     }
   }
-
   void _sendMessage() {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
-
-    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    chatProvider.addUserMessage(message);
-    _messageController.clear();
-
-    // 滚动到底部
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+  final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+  chatProvider.addUserMessage(message);
+  _messageController.clear();
+  // 滚动到底部
+  Future.delayed(const Duration(milliseconds: 100), () {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  });
   }
-
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
-
   // 切换侧边栏展开/折叠状态
   void _toggleSidebar() {
     setState(() {
       _isSidebarExpanded = !_isSidebarExpanded;
     });
   }
-
   @override
   Widget build(BuildContext context) {
     final appTheme = Provider.of<AppTheme>(context);
@@ -203,19 +200,32 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: '输入消息...',
-                      prefixIcon: Icon(Icons.message_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
+                  child: RawKeyboardListener(
+                    focusNode: FocusNode(),
+                    onKey: (RawKeyEvent event) {
+                      if (event is RawKeyDownEvent) {
+                        if (event.isControlPressed && event.logicalKey == LogicalKeyboardKey.enter) {
+                          _sendMessage();
+                          return;
+                        }
+                      }
+                    },
+                    child: TextField(
+                      controller: _messageController,
+                      decoration: InputDecoration(
+                        hintText: '输入消息...',
+                        prefixIcon: Icon(Icons.message_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        helperText: 'Enter键换行，Ctrl+Enter发送消息',
+                        helperStyle: TextStyle(fontSize: 12),
                       ),
+                      maxLines: null,
+                      keyboardType: TextInputType.multiline,
                     ),
-                    maxLines: null,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendMessage(),
                   ),
+                  // 移除textInputAction和onSubmitted，允许Enter键换行
                 ),
                 const SizedBox(width: 12),
                 FloatingActionButton(
@@ -234,7 +244,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
   Widget _buildMessageItem(ChatMessage message) {
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -352,7 +361,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-  
   // 复制内容到剪贴板
   void _copyToClipboard(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
@@ -360,7 +368,6 @@ class _ChatScreenState extends State<ChatScreen> {
       const SnackBar(content: Text('复制成功')),
     );
   }
-  
   // 显示编辑对话框
   void _showEditDialog(BuildContext context, ChatMessage message) {
     // 只允许编辑用户消息
@@ -405,7 +412,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
   // 构建侧边栏
   Widget _buildSidebar() {
     return Container(
