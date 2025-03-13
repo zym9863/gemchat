@@ -209,23 +209,34 @@ class _ChatScreenState extends State<ChatScreen> {
                       border: Border.all(color: Theme.of(context).dividerColor),
                     ),
                     child: SingleChildScrollView(
-                      child: TextField(
-                        controller: _messageController,
-                        decoration: InputDecoration(
-                          hintText: '输入消息...',
-                          prefixIcon: Icon(Icons.message_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide.none,
+                      child: RawKeyboardListener(
+                        focusNode: FocusNode(),
+                        onKey: (RawKeyEvent event) {
+                          if (event is RawKeyDownEvent &&
+                              event.isControlPressed &&
+                              event.logicalKey == LogicalKeyboardKey.enter) {
+                            _sendMessage();
+                            return;
+                          }
+                        },
+                        child: TextField(
+                          controller: _messageController,
+                          decoration: InputDecoration(
+                            hintText: '输入消息...',
+                            prefixIcon: Icon(Icons.message_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none,
+                            ),
+                            helperText: 'Enter键换行，Ctrl+Enter发送消息',
+                            helperStyle: TextStyle(fontSize: 12),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           ),
-                          helperText: 'Enter键换行，Ctrl+Enter发送消息',
-                          helperStyle: TextStyle(fontSize: 12),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          maxLines: null,
+                          keyboardType: TextInputType.multiline,
+                          scrollPhysics: BouncingScrollPhysics(),
+                          style: TextStyle(fontSize: 16),
                         ),
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        scrollPhysics: BouncingScrollPhysics(),
-                        style: TextStyle(fontSize: 16),
                       ),
                     ),
                   ),
