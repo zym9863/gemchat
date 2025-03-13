@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown/markdown.dart' as md;
 import 'package:provider/provider.dart';
 import '../providers/chat_provider.dart';
 import '../models/chat_message.dart';
@@ -292,7 +293,27 @@ class _ChatScreenState extends State<ChatScreen> {
                                   ? Colors.white
                                   : Colors.black87,
                             ),
+                            code: TextStyle(
+                              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey[850]
+                                  : Colors.grey[200],
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                            codeblockDecoration: BoxDecoration(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey[850]
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
                           ),
+                          builders: {
+                            'pre': CustomCodeBlockBuilder(
+                              copyToClipboard: _copyToClipboard,
+                              context: context,
+                            ),
+                          },
                         ),
                   // AI回复底部的按钮（仅在AI回复时显示）
                   if (!message.isUser)
@@ -475,6 +496,69 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// 自定义代码块构建器
+class CustomCodeBlockBuilder extends MarkdownElementBuilder {
+  final Function(String) copyToClipboard;
+  final BuildContext context;
+
+  CustomCodeBlockBuilder({
+    required this.copyToClipboard,
+    required this.context,
+  });
+
+  @override
+  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    // 查找代码内容
+    String codeContent = '';
+    for (final child in element.children ?? []) {
+      if (child is md.Element && child.tag == 'code') {
+        codeContent = child.textContent;
+        break;
+      }
+    }
+
+    return Stack(
+      children: [
+        // 原始代码块
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(top: 20), // 为复制按钮留出空间
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[850]
+                : Colors.grey[200],
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: SelectableText(
+            codeContent,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black87,
+            ),
+          ),
+        ),
+        // 复制按钮
+        Positioned(
+          top: 4,
+          right: 4,
+          child: IconButton(
+            icon: const Icon(Icons.copy, size: 16),
+            tooltip: '复制代码',
+            onPressed: () => copyToClipboard(codeContent),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            iconSize: 16,
+            splashRadius: 16,
+          ),
+        ),
+      ],
     );
   }
 }
