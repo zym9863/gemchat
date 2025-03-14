@@ -394,6 +394,38 @@ class _ChatScreenState extends State<ChatScreen> {
                         ],
                       ),
                     ),
+                  // 用户消息底部的按钮（仅在用户消息时显示）
+                  if (message.isUser)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.copy, size: 16),
+                            tooltip: '复制',
+                            onPressed: () {
+                              // 复制消息内容到剪贴板
+                              _copyToClipboard(message.content);
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 16),
+                            tooltip: '编辑',
+                            onPressed: () {
+                              // 显示编辑对话框
+                              _showEditDialog(context, message);
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            iconSize: 16,
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
