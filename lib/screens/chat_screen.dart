@@ -168,6 +168,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[index];
+                    // 如果是最后一条AI消息且正在加载中，显示流式内容
+                    if (!message.isUser && 
+                        index == messages.length - 1 && 
+                        chatProvider.isLoading) {
+                      return _buildMessageItem(message, isStreaming: true);
+                    }
                     return _buildMessageItem(message);
                   },
                 );
@@ -257,7 +263,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-  Widget _buildMessageItem(ChatMessage message) {
+  Widget _buildMessageItem(ChatMessage message, {bool isStreaming = false}) {
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Row(
@@ -295,37 +301,62 @@ class _ChatScreenState extends State<ChatScreen> {
                                 : Colors.black87,
                           ),
                         )
-                      : MarkdownBody(
-                          data: message.content,
-                          selectable: true,
-                          styleSheet: MarkdownStyleSheet(
-                            p: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black87,
+                      : isStreaming
+                          // 流式响应时使用普通Text避免Markdown解析错误
+                          ? Text(
+                              message.content,
+                              style: TextStyle(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black87,
+                              ),
+                            )
+                          : MarkdownBody(
+                              data: message.content,
+                              selectable: true,
+                              styleSheet: MarkdownStyleSheet(
+                                p: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                                code: TextStyle(
+                                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey[850]
+                                      : Colors.grey[200],
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                                codeblockDecoration: BoxDecoration(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey[850]
+                                      : Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                              ),
+                              builders: {
+                                'pre': CustomCodeBlockBuilder(
+                                  copyToClipboard: _copyToClipboard,
+                                  context: context,
+                                ),
+                              },
                             ),
-                            code: TextStyle(
-                              backgroundColor: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.grey[850]
-                                  : Colors.grey[200],
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black87,
-                            ),
-                            codeblockDecoration: BoxDecoration(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.grey[850]
-                                  : Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
+                  // 显示打字指示器（仅在流式响应时显示）
+                  if (!message.isUser && isStreaming)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Row(
+                        children: [
+                          SizedBox(width: 8),
+                          SizedBox(
+                            width: 8,
+                            height: 8,
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
-                          builders: {
-                            'pre': CustomCodeBlockBuilder(
-                              copyToClipboard: _copyToClipboard,
-                              context: context,
-                            ),
-                          },
-                        ),
+                        ],
+                      ),
+                    ),
                   // AI回复底部的按钮（仅在AI回复时显示）
                   if (!message.isUser)
                     Padding(
@@ -342,7 +373,6 @@ class _ChatScreenState extends State<ChatScreen> {
                             },
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            iconSize: 16,
                           ),
                           const SizedBox(width: 8),
                           IconButton(
@@ -368,28 +398,6 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
-          // 用户消息右侧的按钮（仅在用户消息时显示）
-          if (message.isUser)
-            Column(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.copy, size: 16),
-                  tooltip: '复制',
-                  onPressed: () {
-                    // 复制消息内容到剪贴板
-                    _copyToClipboard(message.content);
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 16),
-                  tooltip: '编辑',
-                  onPressed: () {
-                    // 打开编辑对话框
-                    _showEditDialog(context, message);
-                  },
-                ),
-              ],
-            ),
         ],
       ),
     );

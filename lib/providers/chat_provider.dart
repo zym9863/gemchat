@@ -11,6 +11,7 @@ class ChatProvider extends ChangeNotifier {
   String? _currentSessionId;
   bool _isLoading = false;
   String _errorMessage = '';
+  String _streamingContent = '';
 
   List<String> get availableModels => GeminiService.availableModels;
   String get currentModel => _geminiService.getCurrentModel();
@@ -27,7 +28,8 @@ class ChatProvider extends ChangeNotifier {
   List<ChatMessage> get messages => currentSession?.messages.cast<ChatMessage>() ?? [];
   bool get isLoading => _isLoading;
   String get errorMessage => _errorMessage;
-  
+  String get streamingContent => _streamingContent;
+
   ChatProvider() {
     _loadSessions();
   }
@@ -143,18 +145,38 @@ class ChatProvider extends ChangeNotifier {
     try {
       _isLoading = true;
       _errorMessage = '';
+      _streamingContent = '';
       notifyListeners();
       
       // 转换消息历史为API所需格式
       final history = _convertMessagesToHistory();
       
-      // 发送请求到API
-      final response = await _geminiService.sendMessage(content, history);
+      // 创建一个临时的AI消息用于流式显示
+      final tempAiMessage = ChatMessage.fromAI(_streamingContent);
+      final updatedMessagesWithTemp = [...currentSession!.messages, tempAiMessage];
+      _updateCurrentSession(messages: updatedMessagesWithTemp);
       
-      // 添加AI回复
+      // 发送请求到API，使用流式回调
+      final response = await _geminiService.sendMessage(
+        content, 
+        history,
+        onChunk: (chunk) {
+          // 更新流式内容
+          _streamingContent += chunk;
+          
+          // 更新临时消息的内容
+          final updatedTempMessage = ChatMessage.fromAI(_streamingContent);
+          final updatedMessages = [...currentSession!.messages];
+          updatedMessages[updatedMessages.length - 1] = updatedTempMessage;
+          _updateCurrentSession(messages: updatedMessages);
+        }
+      );
+      
+      // 流式响应完成后，用完整响应替换临时消息
       final aiMessage = ChatMessage.fromAI(response);
-      final updatedMessages = [...currentSession!.messages, aiMessage];
-      _updateCurrentSession(messages: updatedMessages);
+      final messages = [...currentSession!.messages];
+      messages[messages.length - 1] = aiMessage;
+      _updateCurrentSession(messages: messages);
       
       // 更新会话标题（如果是第一条消息）
       if (currentSession!.messages.length <= 2) {
@@ -163,10 +185,12 @@ class ChatProvider extends ChangeNotifier {
       }
       
       _isLoading = false;
+      _streamingContent = '';
       notifyListeners();
     } catch (e) {
       _isLoading = false;
       _errorMessage = e.toString();
+      _streamingContent = '';
       notifyListeners();
     }
   }

@@ -50,7 +50,7 @@ class GeminiService {
     }
   }
   
-  Future<String> sendMessage(String message, List<Map<String, dynamic>> history) async {
+  Future<String> sendMessage(String message, List<Map<String, dynamic>> history, {Function(String)? onChunk}) async {
     if (_apiKey == null) {
       throw Exception('API密钥未设置');
     }
@@ -65,26 +65,65 @@ class GeminiService {
         {'role': 'user', 'content': message}
       ],
       'temperature': 0.7,
+      'stream': true,
     });
     
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_apiKey',
-      },
-      body: body,
-    );
+    final request = http.Request('POST', url);
+    request.headers.addAll({
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $_apiKey',
+    });
+    request.body = body;
     
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data['choices'] != null && data['choices'].isNotEmpty) {
-        return data['choices'][0]['message']['content'];
-      } else {
-        throw Exception('API响应格式错误');
-      }
-    } else {
-      throw Exception('API请求失败: ${response.statusCode} ${response.body}');
+    final response = await request.send();
+    
+    if (response.statusCode != 200) {
+      final responseBody = await response.stream.bytesToString();
+      throw Exception('API请求失败: ${response.statusCode} $responseBody');
     }
+    
+    // 处理流式响应
+    String fullContent = '';
+    String buffer = '';
+    
+    await for (var chunk in response.stream.transform(utf8.decoder)) {
+      buffer += chunk;
+      
+      // 处理SSE格式数据
+      while (buffer.contains('\n\n')) {
+        final parts = buffer.split('\n\n');
+        final eventData = parts[0];
+        buffer = parts.sublist(1).join('\n\n');
+        
+        if (eventData.startsWith('data: ')) {
+          final jsonData = eventData.substring(6).trim();
+          
+          // 处理流结束标记
+          if (jsonData == '[DONE]') {
+            continue;
+          }
+          
+          try {
+            final data = jsonDecode(jsonData);
+            if (data['choices'] != null && data['choices'].isNotEmpty) {
+              final delta = data['choices'][0]['delta'];
+              if (delta != null && delta['content'] != null) {
+                final content = delta['content'];
+                fullContent += content;
+                
+                // 通知调用者新的内容块
+                if (onChunk != null) {
+                  onChunk(content);
+                }
+              }
+            }
+          } catch (e) {
+            print('解析流式数据失败: $e, 数据: $jsonData');
+          }
+        }
+      }
+    }
+    
+    return fullContent;
   }
 }
