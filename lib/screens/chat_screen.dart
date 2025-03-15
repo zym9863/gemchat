@@ -9,6 +9,7 @@ import 'api_key_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/github.dart';
+import 'package:audioplayers/audioplayers.dart';
 // 移除不存在的导入,使用自定义深色主题
 final githubDarkTheme = {
   'root': TextStyle(
@@ -37,6 +38,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isSidebarExpanded = true; // 控制侧边栏是否展开
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final String _soundEffectPath = 'sound-effect-1742042141417.mp3';
   @override
   void initState() {
     super.initState();
@@ -63,12 +66,22 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     }
   }
+  // 播放音效
+  Future<void> _playSound() async {
+    try {
+      await _audioPlayer.play(AssetSource(_soundEffectPath));
+    } catch (e) {
+      print('Error playing sound: $e');
+    }
+  }
+
   void _sendMessage() {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
-  final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-  chatProvider.addUserMessage(message);
-  _messageController.clear();
+    _playSound(); // 发送消息时播放音效
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    chatProvider.addUserMessage(message);
+    _messageController.clear();
   // 滚动到底部
   Future.delayed(const Duration(milliseconds: 100), () {
     if (_scrollController.hasClients) {
@@ -84,6 +97,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
   // 切换侧边栏展开/折叠状态
