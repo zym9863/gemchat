@@ -7,6 +7,24 @@ import '../models/chat_message.dart';
 import '../theme/app_theme.dart';
 import 'api_key_screen.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_highlight/flutter_highlight.dart';
+import 'package:flutter_highlight/themes/github.dart';
+// 移除不存在的导入,使用自定义深色主题
+final githubDarkTheme = {
+  'root': TextStyle(
+    backgroundColor: Color(0xFF0d1117),
+    color: Color(0xFFc9d1d9),
+  ),
+  'keyword': TextStyle(color: Color(0xFFff7b72)),
+  'string': TextStyle(color: Color(0xFFa5d6ff)),
+  'comment': TextStyle(color: Color(0xFF8b949e)),
+  'number': TextStyle(color: Color(0xFFd2a8ff)),
+  'literal': TextStyle(color: Color(0xFFd2a8ff)),
+  'tag': TextStyle(color: Color(0xFF7ee787)),
+  'attr-name': TextStyle(color: Color(0xFF79c0ff)),
+  'attr-value': TextStyle(color: Color(0xFFa5d6ff)),
+  'punctuation': TextStyle(color: Color(0xFFc9d1d9)),
+};
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -563,18 +581,28 @@ class CustomCodeBlockBuilder extends MarkdownElementBuilder {
 
   @override
   Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
-    // 查找代码内容
+    // 查找代码内容和语言
     String codeContent = '';
+    String? language;
+    
     for (final child in element.children ?? []) {
       if (child is md.Element && child.tag == 'code') {
         codeContent = child.textContent;
+        // 尝试从class属性中获取语言
+        final classAttr = child.attributes['class'];
+        if (classAttr != null && classAttr.startsWith('language-')) {
+          language = classAttr.substring('language-'.length);
+        }
         break;
       }
     }
 
+    // 检测代码语言（如果未指定）
+    language = language ?? _detectLanguage(codeContent);
+
     return Stack(
       children: [
-        // 原始代码块
+        // 代码块（带语法高亮）
         Container(
           width: double.infinity,
           margin: const EdgeInsets.only(top: 20), // 为复制按钮留出空间
@@ -585,14 +613,34 @@ class CustomCodeBlockBuilder extends MarkdownElementBuilder {
                 : Colors.grey[200],
             borderRadius: BorderRadius.circular(8.0),
           ),
-          child: SelectableText(
-            codeContent,
-            style: TextStyle(
-              fontFamily: 'monospace',
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black87,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 语言标签
+              if (language != null && language.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    language,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[400]
+                          : Colors.grey[600],
+                    ),
+                  ),
+                ),
+              // 高亮代码
+              HighlightView(
+                codeContent,
+                language: language ?? 'plaintext',
+                theme: Theme.of(context).brightness == Brightness.dark
+                    ? githubDarkTheme
+                    : githubTheme,
+                padding: EdgeInsets.zero,
+                textStyle: TextStyle(fontFamily: 'monospace'),
+              ),
+            ],
           ),
         ),
         // 复制按钮
@@ -611,5 +659,48 @@ class CustomCodeBlockBuilder extends MarkdownElementBuilder {
         ),
       ],
     );
+  }
+  
+  // 根据代码内容自动检测语言
+  String? _detectLanguage(String code) {
+    // 简单的语言检测逻辑
+    if (code.contains('class') && code.contains('extends') && 
+        (code.contains('{') && code.contains('}'))) {
+      if (code.contains('import React') || code.contains('export default') || 
+          code.contains('const') || code.contains('let')) {
+        return 'javascript';
+      } else if (code.contains('func') || code.contains('package main')) {
+        return 'go';
+      } else if (code.contains('public static void main')) {
+        return 'java';
+      } else if (code.contains('def ') || code.contains('import ') && !code.contains(';')) {
+        return 'python';
+      } else if (code.contains('using namespace') || code.contains('#include')) {
+        return 'cpp';
+      } else {
+        return 'dart'; // 默认为dart，因为这是Flutter应用
+      }
+    } else if (code.contains('<html>') || code.contains('<!DOCTYPE html>')) {
+      return 'html';
+    } else if (code.contains('function') || code.contains('const ') || 
+              code.contains('let ') || code.contains('var ')) {
+      return 'javascript';
+    } else if (code.contains('import ') && !code.contains(';') && 
+              (code.contains('def ') || code.contains('print('))) {
+      return 'python';
+    } else if (code.contains('<?php')) {
+      return 'php';
+    } else if (code.contains('#include') || code.contains('int main()')) {
+      return 'cpp';
+    } else if (code.contains('package ') && code.contains('import ') && 
+              code.contains(';')) {
+      return 'java';
+    } else if (code.contains('func ') && code.contains('package ')) {
+      return 'go';
+    } else if (code.contains('void main()') || code.contains('Widget build')) {
+      return 'dart';
+    }
+    
+    return 'plaintext';
   }
 }

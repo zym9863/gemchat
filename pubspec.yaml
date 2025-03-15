@@ -39,6 +39,7 @@ dependencies:
   flutter_markdown: ^0.7.6+2
   provider: ^6.1.2
   file_picker: ^9.0.2
+  flutter_highlight: ^0.7.0
 
 dev_dependencies:
   flutter_test:
