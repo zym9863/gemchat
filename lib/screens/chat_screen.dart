@@ -557,7 +557,7 @@ class _ChatScreenState extends State<ChatScreen> {
   // 构建侧边栏
   Widget _buildSidebar() {
     return Container(
-      color: Colors.grey[100],
+      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[850] : Colors.grey[100],
       child: Column(
         children: [
           // 新建聊天按钮
