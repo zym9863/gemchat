@@ -217,8 +217,27 @@ class _ChatScreenState extends State<ChatScreen> {
               if (chatProvider.isLoading) {
                 return Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Center(
-                    child: CircularProgressIndicator(),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(width: 16),
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.stop_circle_outlined),
+                        label: Text('终止回复'),
+                        onPressed: () {
+                          chatProvider.cancelAIResponse();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[400],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          elevation: 2,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }
@@ -374,17 +393,35 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ),
                               },
                             ),
-                  // 显示打字指示器（仅在流式响应时显示）
+                  // 显示打字指示器和终止按钮（仅在流式响应时显示）
                   if (!message.isUser && isStreaming)
                     Padding(
                       padding: const EdgeInsets.only(top: 4.0),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          SizedBox(width: 8),
-                          SizedBox(
-                            width: 8,
-                            height: 8,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                          Row(
+                            children: [
+                              SizedBox(width: 8),
+                              SizedBox(
+                                width: 8,
+                                height: 8,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ],
+                          ),
+                          TextButton.icon(
+                            icon: Icon(Icons.stop_circle_outlined, size: 16),
+                            label: Text('终止', style: TextStyle(fontSize: 12)),
+                            onPressed: () {
+                              Provider.of<ChatProvider>(context, listen: false).cancelAIResponse();
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red[400],
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              minimumSize: Size(0, 0),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                           ),
                         ],
                       ),

@@ -12,6 +12,7 @@ class ChatProvider extends ChangeNotifier {
   bool _isLoading = false;
   String _errorMessage = '';
   String _streamingContent = '';
+  bool _isCancelled = false;
 
   List<String> get availableModels => GeminiService.availableModels;
   String get currentModel => _geminiService.getCurrentModel();
@@ -141,11 +142,31 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
+  // 取消当前正在进行的AI回复
+  void cancelAIResponse() {
+    if (_isLoading) {
+      _isCancelled = true;
+      _isLoading = false;
+      
+      // 如果已经有部分回复，保留它并标记为已取消
+      if (_streamingContent.isNotEmpty && currentSession != null) {
+        final messages = [...currentSession!.messages];
+        final aiMessage = ChatMessage.fromAI('${_streamingContent}\n\n_[回复已终止]_');
+        messages[messages.length - 1] = aiMessage;
+        _updateCurrentSession(messages: messages);
+      }
+      
+      _streamingContent = '';
+      notifyListeners();
+    }
+  }
+
   Future<void> sendMessageToGemini(String content) async {
     try {
       _isLoading = true;
       _errorMessage = '';
       _streamingContent = '';
+      _isCancelled = false;
       notifyListeners();
       
       // 转换消息历史为API所需格式
@@ -161,6 +182,9 @@ class ChatProvider extends ChangeNotifier {
         content, 
         history,
         onChunk: (chunk) {
+          // 如果已取消，不再处理新的内容块
+          if (_isCancelled) return;
+          
           // 更新流式内容
           _streamingContent += chunk;
           
@@ -171,6 +195,9 @@ class ChatProvider extends ChangeNotifier {
           _updateCurrentSession(messages: updatedMessages);
         }
       );
+      
+      // 如果在响应完成前已取消，则不更新最终消息
+      if (_isCancelled) return;
       
       // 流式响应完成后，用完整响应替换临时消息
       final aiMessage = ChatMessage.fromAI(response);
