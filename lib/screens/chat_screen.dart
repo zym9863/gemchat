@@ -12,6 +12,9 @@ import 'package:flutter_highlight/themes/github.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:convert';
+import 'platform_utils.dart';
 // 移除不存在的导入,使用自定义深色主题
 final githubDarkTheme = {
   'root': TextStyle(
@@ -43,6 +46,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final String _soundEffectPath = 'sound-effect-1742042141417.mp3';
   String? _selectedImagePath; // 存储选择的图片路径
+  Uint8List? _webImageData; // 存储web平台的图片数据
   @override
   void initState() {
     super.initState();
@@ -88,10 +92,22 @@ class _ChatScreenState extends State<ChatScreen> {
     
     // 如果有图片，则发送带图片的消息
     if (_selectedImagePath != null) {
-      chatProvider.addUserMessageWithImage(message, _selectedImagePath!);
+      // 处理web平台的图片数据
+      if (PlatformUtils.isWeb && _webImageData != null && _selectedImagePath!.startsWith('web_image:')) {
+        // 将web平台的图片数据转换为base64格式
+        final base64Image = base64Encode(_webImageData!);
+        // 创建一个特殊的路径格式，包含base64数据
+        final base64Path = 'data:image/jpeg;base64,$base64Image';
+        chatProvider.addUserMessageWithImage(message, base64Path);
+      } else {
+        // 非web平台处理
+        chatProvider.addUserMessageWithImage(message, _selectedImagePath!);
+      }
+      
       // 发送后清除已选择的图片
       setState(() {
         _selectedImagePath = null;
+        _webImageData = null; // 清除web平台的图片数据
       });
     } else {
       // 发送纯文本消息
@@ -281,14 +297,32 @@ class _ChatScreenState extends State<ChatScreen> {
                     final result = await FilePicker.platform.pickFiles(
                       type: FileType.image,
                       allowMultiple: false,
+                      withData: PlatformUtils.isWeb, // 在web平台上获取文件数据
                     );
                     
                     if (result != null && result.files.isNotEmpty) {
-                      final path = result.files.first.path;
-                      if (path != null) {
+                      final file = result.files.first;
+                      String? path = file.path;
+                      
+                      // 在web平台上处理文件
+                      if (PlatformUtils.isWeb) {
+                        if (file.bytes != null) {
+                          // 在web平台上，使用文件名作为标识
+                          path = 'web_image:${file.name}';
+                          // 可以在这里处理文件数据，例如转换为base64或其他格式
+                          setState(() {
+                            _selectedImagePath = path;
+                            _webImageData = file.bytes; // 存储web平台的图片数据
+                          });
+                        }
+                      } else if (path != null) {
+                        // 非web平台处理
                         setState(() {
                           _selectedImagePath = path;
                         });
+                      }
+                      
+                      if (path != null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('图片已选择')),
                         );
@@ -308,7 +342,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
                           image: DecorationImage(
-                            image: FileImage(File(_selectedImagePath!)),
+                            image: PlatformUtils.isWeb && _webImageData != null
+                                ? MemoryImage(_webImageData!) // 使用内存中的图片数据
+                                : FileImage(File(_selectedImagePath!)),
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -429,10 +465,15 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          File(message.mediaPath!),
-                          fit: BoxFit.contain,
-                        ),
+                        child: PlatformUtils.isWeb && message.mediaPath!.startsWith('data:image/')
+                          ? Image.network(
+                              message.mediaPath!,
+                              fit: BoxFit.contain,
+                            )
+                          : Image.file(
+                              File(message.mediaPath!),
+                              fit: BoxFit.contain,
+                            ),
                       ),
                     ),
                   // 消息内容

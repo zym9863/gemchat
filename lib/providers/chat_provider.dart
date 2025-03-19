@@ -187,8 +187,16 @@ class ChatProvider extends ChangeNotifier {
       String? imageBase64;
       if (mediaType == 'image' && mediaPath != null) {
         try {
-          final file = await File(mediaPath).readAsBytes();
-          imageBase64 = base64Encode(file);
+          // 检查是否是web平台上的base64图片数据
+          if (mediaPath.startsWith('data:image/')) {
+            // 从data URL中提取base64部分
+            final base64String = mediaPath.split(',')[1];
+            imageBase64 = base64String;
+          } else {
+            // 非web平台处理
+            final file = await File(mediaPath).readAsBytes();
+            imageBase64 = base64Encode(file);
+          }
         } catch (e) {
           throw Exception('读取图片失败: $e');
         }
