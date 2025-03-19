@@ -16,6 +16,8 @@ A Gemini AI chat application developed with Flutter, providing a clean, beautifu
   - gemini-2.0-flash-thinking-exp-01-21
   - gemini-2.0-flash-001
 - 📋 Markdown format support, beautifully displaying AI replies
+- 🔊 Chat sound effects, providing interactive feedback
+- 🖼️ Image upload functionality, supporting image messages
 - 🔑 API key management, secure and convenient
 
 ## Requirements

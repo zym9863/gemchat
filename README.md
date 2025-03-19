@@ -16,6 +16,8 @@
   - gemini-2.0-flash-thinking-exp-01-21
   - gemini-2.0-flash-001
 - 📋 Markdown格式支持，美观展示AI回复
+- 🔊 聊天音效，提供交互反馈
+- 🖼️ 图片上传功能，支持图片消息
 - 🔑 API密钥管理，安全便捷
 
 ## 安装要求
