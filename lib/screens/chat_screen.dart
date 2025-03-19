@@ -10,6 +10,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 // 移除不存在的导入,使用自定义深色主题
 final githubDarkTheme = {
   'root': TextStyle(
@@ -40,6 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isSidebarExpanded = true; // 控制侧边栏是否展开
   final AudioPlayer _audioPlayer = AudioPlayer();
   final String _soundEffectPath = 'sound-effect-1742042141417.mp3';
+  String? _selectedImagePath; // 存储选择的图片路径
   @override
   void initState() {
     super.initState();
@@ -77,21 +80,35 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _sendMessage() {
     final message = _messageController.text.trim();
-    if (message.isEmpty) return;
+    // 如果没有文本且没有图片，则不发送
+    if (message.isEmpty && _selectedImagePath == null) return;
+    
     _playSound(); // 发送消息时播放音效
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    chatProvider.addUserMessage(message);
-    _messageController.clear();
-  // 滚动到底部
-  Future.delayed(const Duration(milliseconds: 100), () {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+    
+    // 如果有图片，则发送带图片的消息
+    if (_selectedImagePath != null) {
+      chatProvider.addUserMessageWithImage(message, _selectedImagePath!);
+      // 发送后清除已选择的图片
+      setState(() {
+        _selectedImagePath = null;
+      });
+    } else {
+      // 发送纯文本消息
+      chatProvider.addUserMessage(message);
     }
-  });
+    
+    _messageController.clear();
+    // 滚动到底部
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
   @override
   void dispose() {
@@ -257,6 +274,66 @@ class _ChatScreenState extends State<ChatScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
+                // 图片上传按钮
+                IconButton(
+                  icon: Icon(Icons.image),
+                  onPressed: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.image,
+                      allowMultiple: false,
+                    );
+                    
+                    if (result != null && result.files.isNotEmpty) {
+                      final path = result.files.first.path;
+                      if (path != null) {
+                        setState(() {
+                          _selectedImagePath = path;
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('图片已选择')),
+                        );
+                      }
+                    }
+                  },
+                  tooltip: '上传图片',
+                ),
+                // 显示已选择的图片预览
+                if (_selectedImagePath != null)
+                  Stack(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        margin: EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          image: DecorationImage(
+                            image: FileImage(File(_selectedImagePath!)),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _selectedImagePath = null;
+                            });
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.close, size: 12, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 Expanded(
                   child: Container(
                     constraints: BoxConstraints(maxHeight: 120),
@@ -342,6 +419,22 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 显示图片（如果有）
+                  if (message.isUser && message.mediaType == 'image' && message.mediaPath != null)
+                    Container(
+                      margin: EdgeInsets.only(bottom: 8),
+                      constraints: BoxConstraints(
+                        maxHeight: 200,
+                        maxWidth: MediaQuery.of(context).size.width * 0.6,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          File(message.mediaPath!),
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
                   // 消息内容
                   message.isUser
                       ? Text(

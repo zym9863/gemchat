@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_message.dart';
@@ -97,18 +98,23 @@ class ChatProvider extends ChangeNotifier {
     }
   }
   
-  void addUserMessage(String content) {
-    if (content.trim().isEmpty) return;
+  void addUserMessage(String content, {String? mediaType, String? mediaPath}) {
+    if (content.trim().isEmpty && mediaPath == null) return;
     if (currentSession == null) {
       createNewSession();
     }
     
-    final message = ChatMessage.fromUser(content);
+    final message = ChatMessage.fromUser(content, mediaType: mediaType, mediaPath: mediaPath);
     final updatedMessages = [...currentSession!.messages, message];
     _updateCurrentSession(messages: updatedMessages);
     
     // 自动发送到API获取回复
-    sendMessageToGemini(content);
+    sendMessageToGemini(content, mediaType: mediaType, mediaPath: mediaPath);
+  }
+  
+  // 添加带图片的用户消息
+  void addUserMessageWithImage(String content, String imagePath) {
+    addUserMessage(content, mediaType: 'image', mediaPath: imagePath);
   }
   
   void _updateCurrentSession({List<dynamic>? messages, String? title}) {
@@ -161,7 +167,7 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> sendMessageToGemini(String content) async {
+  Future<void> sendMessageToGemini(String content, {String? mediaType, String? mediaPath}) async {
     try {
       _isLoading = true;
       _errorMessage = '';
@@ -177,10 +183,22 @@ class ChatProvider extends ChangeNotifier {
       final updatedMessagesWithTemp = [...currentSession!.messages, tempAiMessage];
       _updateCurrentSession(messages: updatedMessagesWithTemp);
       
+      // 处理图片（如果有）
+      String? imageBase64;
+      if (mediaType == 'image' && mediaPath != null) {
+        try {
+          final file = await File(mediaPath).readAsBytes();
+          imageBase64 = base64Encode(file);
+        } catch (e) {
+          throw Exception('读取图片失败: $e');
+        }
+      }
+      
       // 发送请求到API，使用流式回调
       final response = await _geminiService.sendMessage(
         content, 
         history,
+        imageBase64: imageBase64,
         onChunk: (chunk) {
           // 如果已取消，不再处理新的内容块
           if (_isCancelled) return;

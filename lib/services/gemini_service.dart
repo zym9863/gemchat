@@ -50,19 +50,38 @@ class GeminiService {
     }
   }
   
-  Future<String> sendMessage(String message, List<Map<String, dynamic>> history, {Function(String)? onChunk}) async {
+  Future<String> sendMessage(String message, List<Map<String, dynamic>> history, {Function(String)? onChunk, String? imageBase64}) async {
     if (_apiKey == null) {
       throw Exception('API密钥未设置');
     }
     
     final url = Uri.parse('$_baseUrl$_apiEndpoint');
     
+    // 构建用户消息内容
+    dynamic userContent;
+    
+    if (imageBase64 != null) {
+      // 如果有图片，构建包含图片的消息内容（符合OpenAI规范）
+      userContent = [
+        {"type": "text", "text": message},
+        {
+          "type": "image_url",
+          "image_url": {
+            "url": "data:image/jpeg;base64,$imageBase64"
+          }
+        }
+      ];
+    } else {
+      // 纯文本消息
+      userContent = message;
+    }
+    
     // 构建符合OpenAI规范的请求体
     final body = jsonEncode({
       'model': _currentModel,
       'messages': [
         ...history,
-        {'role': 'user', 'content': message}
+        {'role': 'user', 'content': userContent}
       ],
       'temperature': 0.7,
       'stream': true,
