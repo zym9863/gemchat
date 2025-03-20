@@ -5,15 +5,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../services/gemini_service.dart';
+import '../services/tavily_service.dart';
 
 class ChatProvider extends ChangeNotifier {
   final GeminiService _geminiService = GeminiService();
+  final TavilyService _tavilyService = TavilyService();
   final List<ChatSession> _sessions = [];
   String? _currentSessionId;
   bool _isLoading = false;
   String _errorMessage = '';
   String _streamingContent = '';
   bool _isCancelled = false;
+  bool _isWebSearchEnabled = false; // 控制是否启用联网搜索
 
   List<String> get availableModels => GeminiService.availableModels;
   String get currentModel => _geminiService.getCurrentModel();
@@ -79,6 +82,22 @@ class ChatProvider extends ChangeNotifier {
 
   Future<void> setApiKey(String apiKey) async {
     await _geminiService.setApiKey(apiKey);
+    notifyListeners();
+  }
+  
+  Future<bool> hasTavilyApiKey() async {
+    return await _tavilyService.hasApiKey();
+  }
+
+  Future<void> setTavilyApiKey(String apiKey) async {
+    await _tavilyService.setApiKey(apiKey);
+    notifyListeners();
+  }
+  
+  bool get isWebSearchEnabled => _isWebSearchEnabled;
+  
+  void toggleWebSearch() {
+    _isWebSearchEnabled = !_isWebSearchEnabled;
     notifyListeners();
   }
 
@@ -202,9 +221,64 @@ class ChatProvider extends ChangeNotifier {
         }
       }
       
+      // 处理联网搜索
+      String enhancedContent = content;
+      if (_isWebSearchEnabled && mediaType != 'image') {
+        try {
+          // 更新临时消息，显示正在搜索
+          _streamingContent = "正在进行联网搜索...";
+          final updatedTempMessage = ChatMessage.fromAI(_streamingContent);
+          final updatedMessages = [...currentSession!.messages];
+          updatedMessages[updatedMessages.length - 1] = updatedTempMessage;
+          _updateCurrentSession(messages: updatedMessages);
+          
+          // 调用Tavily API进行搜索
+          final searchResult = await _tavilyService.search(content);
+          
+          // 构建增强的提示，包含搜索结果
+          if (searchResult.containsKey('results') && searchResult['results'] is List) {
+            final results = searchResult['results'] as List;
+            if (results.isNotEmpty) {
+              // 更新临时消息，显示搜索完成
+              _streamingContent = "搜索完成，正在生成回复...";
+              final updatedTempMessage = ChatMessage.fromAI(_streamingContent);
+              final updatedMessages = [...currentSession!.messages];
+              updatedMessages[updatedMessages.length - 1] = updatedTempMessage;
+              _updateCurrentSession(messages: updatedMessages);
+              
+              // 构建包含搜索结果的增强提示
+              enhancedContent = """用户问题: $content
+
+以下是来自互联网的相关信息:
+""";
+              
+              // 添加最多10个搜索结果
+              final maxResults = results.length > 10 ? 10 : results.length;
+              for (int i = 0; i < maxResults; i++) {
+                final result = results[i];
+                if (result.containsKey('content') && result.containsKey('url')) {
+                  enhancedContent += """\n来源 ${i+1}: ${result['url']}
+${result['content']}\n""";
+                }
+              }
+              
+              enhancedContent += """\n请根据以上信息回答用户的问题，如果信息不足，请基于你已有的知识回答。回答时不要逐条引用来源，而是综合所有信息给出流畅的回答。""";
+            }
+          }
+        } catch (e) {
+          print('联网搜索失败: $e');
+          // 搜索失败时，使用原始内容继续
+          _streamingContent = "联网搜索失败，使用离线模式回答...";
+          final updatedTempMessage = ChatMessage.fromAI(_streamingContent);
+          final updatedMessages = [...currentSession!.messages];
+          updatedMessages[updatedMessages.length - 1] = updatedTempMessage;
+          _updateCurrentSession(messages: updatedMessages);
+        }
+      }
+      
       // 发送请求到API，使用流式回调
       final response = await _geminiService.sendMessage(
-        content, 
+        enhancedContent, 
         history,
         imageBase64: imageBase64,
         onChunk: (chunk) {

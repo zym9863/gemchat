@@ -10,32 +10,35 @@ class ApiKeyScreen extends StatefulWidget {
 }
 
 class _ApiKeyScreenState extends State<ApiKeyScreen> {
-  final TextEditingController _apiKeyController = TextEditingController();
+  final TextEditingController _geminiApiKeyController = TextEditingController();
+  final TextEditingController _tavilyApiKeyController = TextEditingController();
   bool _isLoading = false;
   String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _loadApiKey();
+    _loadApiKeys();
   }
 
-  Future<void> _loadApiKey() async {
+  Future<void> _loadApiKeys() async {
     // 使用公开方法获取API密钥
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    final hasKey = await chatProvider.hasApiKey();
-    if (hasKey) {
+    final hasGeminiKey = await chatProvider.hasApiKey();
+    final hasTavilyKey = await chatProvider.hasTavilyApiKey();
+    
+    if (hasGeminiKey || hasTavilyKey) {
       // 如果有API密钥，我们可以通过服务获取它
-      // 这里不能直接访问私有成员_geminiService
+      // 这里不能直接访问私有成员_geminiService和_tavilyService
       // 暂时不显示API密钥，因为我们没有提供获取API密钥的公开方法
     }
   }
 
-  Future<void> _saveApiKey() async {
-    final apiKey = _apiKeyController.text.trim();
+  Future<void> _saveGeminiApiKey() async {
+    final apiKey = _geminiApiKeyController.text.trim();
     if (apiKey.isEmpty) {
       setState(() {
-        _errorMessage = 'API密钥不能为空';
+        _errorMessage = 'Gemini API密钥不能为空';
       });
       return;
     }
@@ -48,24 +51,55 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
     try {
       final chatProvider = Provider.of<ChatProvider>(context, listen: false);
       await chatProvider.setApiKey(apiKey);
-      if (!mounted) return;
-      Navigator.of(context).pop();
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gemini API密钥已保存')),
+      );
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
+        _isLoading = false;
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    }
+  }
+  
+  Future<void> _saveTavilyApiKey() async {
+    final apiKey = _tavilyApiKeyController.text.trim();
+    if (apiKey.isEmpty) {
+      setState(() {
+        _errorMessage = 'Tavily API密钥不能为空';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+      await chatProvider.setTavilyApiKey(apiKey);
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tavily API密钥已保存')),
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
   @override
   void dispose() {
-    _apiKeyController.dispose();
+    _geminiApiKeyController.dispose();
+    _tavilyApiKeyController.dispose();
     super.dispose();
   }
 
@@ -77,51 +111,84 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              '请输入您的Gemini API密钥',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _apiKeyController,
-              decoration: const InputDecoration(
-                hintText: '输入API密钥',
-                border: OutlineInputBorder(),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Gemini API密钥设置
+              const Text(
+                '请输入您的Gemini API密钥',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 16),
-            if (_errorMessage.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Text(
-                  _errorMessage,
-                  style: const TextStyle(color: Colors.red),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _geminiApiKeyController,
+                decoration: const InputDecoration(
+                  hintText: '输入Gemini API密钥',
+                  border: OutlineInputBorder(),
                 ),
+                obscureText: true,
               ),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _saveApiKey,
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('保存'),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              '如何获取Gemini API密钥：\n\n'  
-              '1. 访问 https://ai.google.dev/ \n'
-              '2. 登录您的Google账户\n'
-              '3. 创建一个API密钥\n'
-              '4. 复制并粘贴到上面的输入框中',
-              style: TextStyle(fontSize: 14),
-            ),
-          ],
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _saveGeminiApiKey,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('保存Gemini API密钥'),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '您可以从Google AI Studio获取Gemini API密钥:\nhttps://aistudio.google.com/',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              
+              const Divider(height: 40),
+              
+              // Tavily API密钥设置
+              const Text(
+                '请输入您的Tavily API密钥（用于联网搜索）',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _tavilyApiKeyController,
+                decoration: const InputDecoration(
+                  hintText: '输入Tavily API密钥',
+                  border: OutlineInputBorder(),
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _saveTavilyApiKey,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('保存Tavily API密钥'),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '您可以从Tavily官网获取API密钥:\nhttps://tavily.com/',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              
+              if (_errorMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Text(
+                    _errorMessage,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

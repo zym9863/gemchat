@@ -378,36 +378,85 @@ class _ChatScreenState extends State<ChatScreen> {
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: Theme.of(context).dividerColor),
                     ),
-                    child: SingleChildScrollView(
-                      child: RawKeyboardListener(
-                        focusNode: FocusNode(),
-                        onKey: (RawKeyEvent event) {
-                          if (event is RawKeyDownEvent &&
-                              event.isControlPressed &&
-                              event.logicalKey == LogicalKeyboardKey.enter) {
-                            _sendMessage();
-                            return;
-                          }
-                        },
-                        child: TextField(
-                          controller: _messageController,
-                          decoration: InputDecoration(
-                            hintText: '输入消息...',
-                            prefixIcon: Icon(Icons.message_outlined),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: BorderSide.none,
-                            ),
-                            helperText: 'Enter键换行，Ctrl+Enter发送消息',
-                            helperStyle: TextStyle(fontSize: 12),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          ),
-                          maxLines: null,
-                          keyboardType: TextInputType.multiline,
-                          scrollPhysics: BouncingScrollPhysics(),
-                          style: TextStyle(fontSize: 16),
+                    child: Column(
+                      children: [
+                        // 联网搜索开关
+                        Consumer<ChatProvider>(
+                          builder: (context, chatProvider, child) {
+                            return Padding(
+                              padding: const EdgeInsets.only(left: 8.0, top: 4.0, right: 8.0),
+                              child: Row(
+                                children: [
+                                  Switch(
+                                    value: chatProvider.isWebSearchEnabled,
+                                    onChanged: (value) async {
+                                      if (value) {
+                                        // 检查是否设置了Tavily API密钥
+                                        final hasTavilyKey = await chatProvider.hasTavilyApiKey();
+                                        if (!hasTavilyKey) {
+                                          // 如果未设置API密钥，导航到API密钥设置界面
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('请先设置Tavily API密钥')),
+                                          );
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (context) => const ApiKeyScreen(),
+                                            ),
+                                          );
+                                          return;
+                                        }
+                                      }
+                                      chatProvider.toggleWebSearch();
+                                    },
+                                    activeColor: Colors.blue,
+                                  ),
+                                  Text(
+                                    '联网搜索',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                  Tooltip(
+                                    message: '启用联网搜索功能，需要设置Tavily API密钥',
+                                    child: Icon(Icons.info_outline, size: 16),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
-                      ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: RawKeyboardListener(
+                              focusNode: FocusNode(),
+                              onKey: (RawKeyEvent event) {
+                                if (event is RawKeyDownEvent &&
+                                    event.isControlPressed &&
+                                    event.logicalKey == LogicalKeyboardKey.enter) {
+                                  _sendMessage();
+                                  return;
+                                }
+                              },
+                              child: TextField(
+                                controller: _messageController,
+                                decoration: InputDecoration(
+                                  hintText: '输入消息...',
+                                  prefixIcon: Icon(Icons.message_outlined),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  helperText: 'Enter键换行，Ctrl+Enter发送消息',
+                                  helperStyle: TextStyle(fontSize: 12),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                ),
+                                maxLines: null,
+                                keyboardType: TextInputType.multiline,
+                                scrollPhysics: BouncingScrollPhysics(),
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
