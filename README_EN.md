@@ -17,8 +17,11 @@ A Gemini AI chat application developed with Flutter, providing a clean, beautifu
   - gemini-2.0-flash-001
 - 📋 Markdown format support, beautifully displaying AI replies
 - 🔊 Chat sound effects, providing interactive feedback
-- 🖼️ Image upload functionality, supporting image messages
-- 🔑 API key management, secure and convenient
+- 🖼️ Image upload functionality, supporting image recognition and analysis
+- 🌐 Web search functionality, getting real-time information via Tavily API
+- ✏️ Message editing and regeneration capabilities
+- 🔄 Streaming responses, displaying AI replies in real-time
+- 🔑 API key management, supporting both Gemini and Tavily dual API configuration
 
 ## Requirements
 
