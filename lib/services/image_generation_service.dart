@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ImageGenerationService {
   static const String _baseUrl = 'https://pollinations.ai/p/';
@@ -43,11 +44,23 @@ class ImageGenerationService {
     final actualSeed = seed ?? DateTime.now().millisecondsSinceEpoch % 10000;
     
     // 构建API URL
-    final imageUrl = Uri.parse('$_baseUrl${Uri.encodeComponent(prompt)}?width=$width&height=$height&seed=$actualSeed&model=${defaultModel}&nologo=true');
+    String imageUrlString;
+    
+    if (kIsWeb) {
+      // Web平台使用代理URL或CORS友好的URL格式
+      // 方法1：使用CORS代理服务（如果有）
+      // imageUrlString = 'https://your-cors-proxy.com/$_baseUrl${Uri.encodeComponent(prompt)}?width=$width&height=$height&seed=$actualSeed&model=${defaultModel}&nologo=true';
+      
+      // 方法2：使用pollinations.ai的替代URL格式（如果支持）
+      imageUrlString = 'https://image.pollinations.ai/prompt/${Uri.encodeComponent(prompt)}?width=$width&height=$height&seed=$actualSeed&nologo=true';
+    } else {
+      // 非Web平台使用原始URL
+      imageUrlString = '$_baseUrl${Uri.encodeComponent(prompt)}?width=$width&height=$height&seed=$actualSeed&model=${defaultModel}&nologo=true';
+    }
     
     try {
       // 返回图像URL，Flutter可以直接使用这个URL加载图像
-      return imageUrl.toString();
+      return imageUrlString;
     } catch (e) {
       throw Exception('生成图像失败: $e');
     }
