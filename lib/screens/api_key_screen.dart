@@ -179,6 +179,8 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               
+              const Divider(height: 40),
+              
               if (_errorMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),

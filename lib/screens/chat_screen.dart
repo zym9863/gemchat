@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
+import '../widgets/custom_image_builder.dart';
 import 'package:provider/provider.dart';
 import '../providers/chat_provider.dart';
 import '../models/chat_message.dart';
@@ -41,6 +42,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
+  final TextEditingController _imagePromptController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isSidebarExpanded = true; // 控制侧边栏是否展开
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -90,8 +92,12 @@ class _ChatScreenState extends State<ChatScreen> {
     _playSound(); // 发送消息时播放音效
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
     
-    // 如果有图片，则发送带图片的消息
-    if (_selectedImagePath != null) {
+    // 检查是否是图像生成模式
+    if (chatProvider.isImageGenerationEnabled && _selectedImagePath == null) {
+      // 调用ChatProvider中的方法生成图像
+      chatProvider.addGeneratedImageMessage(message);
+    } else if (_selectedImagePath != null) {
+      // 如果有图片，则发送带图片的消息
       // 处理web平台的图片数据
       if (PlatformUtils.isWeb && _webImageData != null && _selectedImagePath!.startsWith('web_image:')) {
         // 将web平台的图片数据转换为base64格式
@@ -129,6 +135,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _messageController.dispose();
+    _imagePromptController.dispose();
     _scrollController.dispose();
     _audioPlayer.dispose();
     super.dispose();
@@ -137,6 +144,37 @@ class _ChatScreenState extends State<ChatScreen> {
   void _toggleSidebar() {
     setState(() {
       _isSidebarExpanded = !_isSidebarExpanded;
+    });
+  }
+  
+  // 生成图像
+  void _generateImage() {
+    final prompt = _imagePromptController.text.trim();
+    if (prompt.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请输入图像描述')),
+      );
+      return;
+    }
+    
+    _playSound(); // 播放音效
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    
+    // 调用ChatProvider中的方法生成图像
+    chatProvider.addGeneratedImageMessage(prompt);
+    
+    // 清空输入框
+    _imagePromptController.clear();
+    
+    // 滚动到底部
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
   @override
@@ -380,49 +418,83 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     child: Column(
                       children: [
-                        // 联网搜索开关
-                        Consumer<ChatProvider>(
-                          builder: (context, chatProvider, child) {
-                            return Padding(
-                              padding: const EdgeInsets.only(left: 8.0, top: 4.0, right: 8.0),
-                              child: Row(
-                                children: [
-                                  Switch(
-                                    value: chatProvider.isWebSearchEnabled,
-                                    onChanged: (value) async {
-                                      if (value) {
-                                        // 检查是否设置了Tavily API密钥
-                                        final hasTavilyKey = await chatProvider.hasTavilyApiKey();
-                                        if (!hasTavilyKey) {
-                                          // 如果未设置API密钥，导航到API密钥设置界面
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('请先设置Tavily API密钥')),
-                                          );
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (context) => const ApiKeyScreen(),
-                                            ),
-                                          );
-                                          return;
-                                        }
-                                      }
-                                      chatProvider.toggleWebSearch();
-                                    },
-                                    activeColor: Colors.blue,
-                                  ),
-                                  Text(
-                                    '联网搜索',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                  Tooltip(
-                                    message: '启用联网搜索功能，需要设置Tavily API密钥',
-                                    child: Icon(Icons.info_outline, size: 16),
-                                  ),
-                                ],
+                        // 功能开关区域 - 重新设计
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // 联网搜索开关
+                              Consumer<ChatProvider>(
+                                builder: (context, chatProvider, child) {
+                                  return Row(
+                                    children: [
+                                      Switch(
+                                        value: chatProvider.isWebSearchEnabled,
+                                        onChanged: (value) async {
+                                          if (value) {
+                                            // 检查是否设置了Tavily API密钥
+                                            final hasTavilyKey = await chatProvider.hasTavilyApiKey();
+                                            if (!hasTavilyKey) {
+                                              // 如果未设置API密钥，导航到API密钥设置界面
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('请先设置Tavily API密钥')),
+                                              );
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (context) => const ApiKeyScreen(),
+                                                ),
+                                              );
+                                              return;
+                                            }
+                                          }
+                                          chatProvider.toggleWebSearch();
+                                        },
+                                        activeColor: Colors.blue,
+                                      ),
+                                      Text(
+                                        '联网搜索',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Tooltip(
+                                        message: '启用联网搜索功能，需要设置Tavily API密钥',
+                                        child: Icon(Icons.info_outline, size: 16),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
-                            );
-                          },
+                              
+                              // 图像生成开关
+                              Consumer<ChatProvider>(
+                                builder: (context, chatProvider, child) {
+                                  return Row(
+                                    children: [
+                                      Switch(
+                                        value: chatProvider.isImageGenerationEnabled,
+                                        onChanged: (value) {
+                                          chatProvider.toggleImageGeneration();
+                                        },
+                                        activeColor: Colors.blue,
+                                      ),
+                                      Text(
+                                        '图像生成',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Tooltip(
+                                        message: '启用AI图像生成功能',
+                                        child: Icon(Icons.info_outline, size: 16),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
+                        
                         Expanded(
                           child: SingleChildScrollView(
                             child: RawKeyboardListener(
@@ -438,7 +510,9 @@ class _ChatScreenState extends State<ChatScreen> {
                               child: TextField(
                                 controller: _messageController,
                                 decoration: InputDecoration(
-                                  hintText: '输入消息...',
+                                  hintText: Provider.of<ChatProvider>(context).isImageGenerationEnabled
+                                      ? '输入图像描述...'
+                                      : '输入消息...',
                                   prefixIcon: Icon(Icons.message_outlined),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(24),
@@ -462,9 +536,19 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 SizedBox(width: 8),
                 IconButton(
-                  icon: Icon(Icons.send),
+                  icon: Consumer<ChatProvider>(
+                    builder: (context, chatProvider, child) {
+                      return Icon(
+                        chatProvider.isImageGenerationEnabled
+                            ? Icons.auto_awesome  // 图像生成模式使用不同图标
+                            : Icons.send
+                      );
+                    },
+                  ),
                   onPressed: _messageController.text.trim().isEmpty ? null : _sendMessage,
-                  tooltip: '发送消息',
+                  tooltip: Provider.of<ChatProvider>(context).isImageGenerationEnabled
+                      ? '生成图像'
+                      : '发送消息',
                 ),
               ],
             ),
@@ -568,12 +652,17 @@ class _ChatScreenState extends State<ChatScreen> {
                                       : Colors.grey[200],
                                   borderRadius: BorderRadius.circular(8.0),
                                 ),
+                                // 限制图像最大宽度和高度
+                                img: TextStyle(fontSize: 0), // 使用fontSize: 0避免图像下方出现空白
                               ),
                               builders: {
                                 'pre': CustomCodeBlockBuilder(
                                   copyToClipboard: _copyToClipboard,
                                   context: context,
                                 ),
+                                // 添加自定义图像构建器
+                                'img': CustomImageBuilder(),
+                                
                               },
                             ),
                   // 显示打字指示器和终止按钮（仅在流式响应时显示）

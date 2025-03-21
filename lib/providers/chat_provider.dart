@@ -6,10 +6,12 @@ import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../services/gemini_service.dart';
 import '../services/tavily_service.dart';
+import '../services/image_generation_service.dart';
 
 class ChatProvider extends ChangeNotifier {
   final GeminiService _geminiService = GeminiService();
   final TavilyService _tavilyService = TavilyService();
+  final ImageGenerationService _imageGenerationService = ImageGenerationService();
   final List<ChatSession> _sessions = [];
   String? _currentSessionId;
   bool _isLoading = false;
@@ -17,6 +19,7 @@ class ChatProvider extends ChangeNotifier {
   String _streamingContent = '';
   bool _isCancelled = false;
   bool _isWebSearchEnabled = false; // 控制是否启用联网搜索
+  bool _isImageGenerationEnabled = false; // 控制是否启用图像生成功能
 
   List<String> get availableModels => GeminiService.availableModels;
   String get currentModel => _geminiService.getCurrentModel();
@@ -37,6 +40,12 @@ class ChatProvider extends ChangeNotifier {
 
   ChatProvider() {
     _loadSessions();
+    _loadSettings();
+  }
+  
+  Future<void> _loadSettings() async {
+    await _imageGenerationService.loadSettings();
+    notifyListeners();
   }
   
   Future<void> _loadSessions() async {
@@ -95,10 +104,26 @@ class ChatProvider extends ChangeNotifier {
   }
   
   bool get isWebSearchEnabled => _isWebSearchEnabled;
+  bool get isImageGenerationEnabled => _imageGenerationService.isEnabled();
   
   void toggleWebSearch() {
     _isWebSearchEnabled = !_isWebSearchEnabled;
     notifyListeners();
+  }
+  
+  void toggleImageGeneration() {
+    _imageGenerationService.toggleImageGeneration();
+    notifyListeners();
+  }
+  
+  // 图像生成功能仅使用默认模型
+  
+  // 生成图像
+  Future<String> generateImage(String prompt, {int width = 1024, int height = 1024}) async {
+    if (!isImageGenerationEnabled) {
+      throw Exception('图像生成功能未启用');
+    }
+    return await _imageGenerationService.generateImage(prompt, width: width, height: height);
   }
 
   void createNewSession() {
@@ -134,6 +159,61 @@ class ChatProvider extends ChangeNotifier {
   // 添加带图片的用户消息
   void addUserMessageWithImage(String content, String imagePath) {
     addUserMessage(content, mediaType: 'image', mediaPath: imagePath);
+  }
+  
+  // 添加AI生成的图像消息
+  Future<void> addGeneratedImageMessage(String prompt) async {
+    if (!isImageGenerationEnabled) {
+      throw Exception('图像生成功能未启用');
+    }
+    
+    if (currentSession == null) {
+      createNewSession();
+    }
+    
+    try {
+      _isLoading = true;
+      _errorMessage = '';
+      notifyListeners();
+      
+      // 添加用户提示消息
+      final userMessage = ChatMessage.fromUser('生成图像: $prompt');
+      final updatedMessages = [...currentSession!.messages, userMessage];
+      _updateCurrentSession(messages: updatedMessages);
+      
+      // 创建一个临时的AI消息用于显示加载状态
+      final tempAiMessage = ChatMessage.fromAI('正在生成图像...');
+      final updatedMessagesWithTemp = [...updatedMessages, tempAiMessage];
+      _updateCurrentSession(messages: updatedMessagesWithTemp);
+      
+      // 调用图像生成服务
+      final imageUrl = await generateImage(prompt);
+      
+      // 创建包含图像URL的AI回复
+      final aiMessage = ChatMessage.fromAI(
+        '![]($imageUrl)\n\n这是根据你的描述"$prompt"生成的图像。'
+      );
+      
+      // 更新消息列表，替换临时消息
+      final messages = [...updatedMessages, aiMessage];
+      _updateCurrentSession(messages: messages);
+      
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString();
+      
+      // 如果生成失败，添加错误消息
+      if (currentSession != null) {
+        final messages = [...currentSession!.messages];
+        final errorMessage = ChatMessage.fromAI('图像生成失败: ${e.toString()}');
+        messages[messages.length - 1] = errorMessage;
+        _updateCurrentSession(messages: messages);
+      }
+      
+      notifyListeners();
+    }
   }
   
   void _updateCurrentSession({List<dynamic>? messages, String? title}) {
