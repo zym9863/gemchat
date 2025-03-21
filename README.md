@@ -66,9 +66,11 @@ lib/
 │   └── chat_provider.dart # 聊天状态提供者
 ├── screens/               # 界面
 │   ├── api_key_screen.dart # API密钥设置界面
-│   └── chat_screen.dart   # 主聊天界面
+│   ├── chat_screen.dart   # 主聊天界面
+│   └── platform_utils.dart # 平台工具类
 ├── services/              # 服务
-│   └── gemini_service.dart # Gemini API服务
+│   ├── gemini_service.dart # Gemini API服务
+│   └── tavily_service.dart # Tavily搜索服务
 └── theme/                 # 主题
     └── app_theme.dart     # 应用主题设置
 ```

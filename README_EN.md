@@ -66,9 +66,11 @@ lib/
 │   └── chat_provider.dart # Chat state provider
 ├── screens/               # Screens
 │   ├── api_key_screen.dart # API key setting screen
-│   └── chat_screen.dart   # Main chat screen
+│   ├── chat_screen.dart   # Main chat screen
+│   └── platform_utils.dart # Platform utility class
 ├── services/              # Services
-│   └── gemini_service.dart # Gemini API service
+│   ├── gemini_service.dart # Gemini API service
+│   └── tavily_service.dart # Tavily search service
 └── theme/                 # Theme
     └── app_theme.dart     # Application theme settings
 ```
