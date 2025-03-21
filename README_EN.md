@@ -17,7 +17,9 @@ A Gemini AI chat application developed with Flutter, providing a clean, beautifu
   - gemini-2.0-flash-001
 - 📋 Markdown format support, beautifully displaying AI replies
 - 🔊 Chat sound effects, providing interactive feedback
-- 🖼️ Image upload functionality, supporting image recognition and analysis
+- 🖼️ Image Features
+  - Image Upload: Supporting image recognition and analysis
+  - Image Generation: Based on Pollinations.AI, supporting text-to-image generation
 - 🌐 Web search functionality, getting real-time information via Tavily API
 - ✏️ Message editing and regeneration capabilities
 - 🔄 Streaming responses, displaying AI replies in real-time
@@ -70,9 +72,12 @@ lib/
 │   └── platform_utils.dart # Platform utility class
 ├── services/              # Services
 │   ├── gemini_service.dart # Gemini API service
+│   ├── image_generation_service.dart # Image generation service
 │   └── tavily_service.dart # Tavily search service
-└── theme/                 # Theme
-    └── app_theme.dart     # Application theme settings
+├── theme/                 # Theme
+│   └── app_theme.dart     # Application theme settings
+└── widgets/               # Custom widgets
+    └── custom_image_builder.dart # Custom image builder
 ```
 
 ## Main Dependencies
