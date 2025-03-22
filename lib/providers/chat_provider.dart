@@ -181,6 +181,12 @@ class ChatProvider extends ChangeNotifier {
       final updatedMessages = [...currentSession!.messages, userMessage];
       _updateCurrentSession(messages: updatedMessages);
       
+      // 更新会话标题（如果是第一条消息）
+      if (currentSession!.messages.length <= 1) {
+        final title = prompt.length > 20 ? '${prompt.substring(0, 20)}...' : prompt;
+        _updateCurrentSession(title: title);
+      }
+      
       // 创建一个临时的AI消息用于显示加载状态
       final tempAiMessage = ChatMessage.fromAI('正在生成图像...');
       final updatedMessagesWithTemp = [...updatedMessages, tempAiMessage];
