@@ -108,11 +108,23 @@ class ChatProvider extends ChangeNotifier {
   
   void toggleWebSearch() {
     _isWebSearchEnabled = !_isWebSearchEnabled;
+    
+    // 如果启用了网络搜索，则禁用图像生成功能
+    if (_isWebSearchEnabled && _imageGenerationService.isEnabled()) {
+      _imageGenerationService.toggleImageGeneration();
+    }
+    
     notifyListeners();
   }
   
   void toggleImageGeneration() {
     _imageGenerationService.toggleImageGeneration();
+    
+    // 如果启用了图像生成功能，则禁用网络搜索
+    if (_imageGenerationService.isEnabled() && _isWebSearchEnabled) {
+      _isWebSearchEnabled = false;
+    }
+    
     notifyListeners();
   }
   
