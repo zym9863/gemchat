@@ -5,9 +5,9 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:file_picker/file_picker.dart';
 import '../screens/platform_utils.dart';
+import 'package:flutter/services.dart';
 
 /// 自定义图像构建器，用于在Markdown中渲染图像
 class CustomImageBuilder extends MarkdownElementBuilder {
@@ -119,15 +119,7 @@ class CustomImageBuilder extends MarkdownElementBuilder {
         _saveImageOnWeb(imageBytes, scaffold);
       } else if (Platform.isAndroid) {
         // Android平台保存到相册
-        final result = await ImageGallerySaver.saveImage(imageBytes);
-        if (result['isSuccess']) {
-          scaffold.hideCurrentSnackBar();
-          scaffold.showSnackBar(
-            const SnackBar(content: Text('图像已保存到相册')),
-          );
-        } else {
-          _showErrorMessage(scaffold, '保存失败: ${result['errorMessage']}');
-        }
+        _saveImageToGalleryOnAndroid(imageBytes, scaffold);
       } else {
         // 其他平台使用文件选择器保存
         _saveImageWithFilePicker(imageBytes, scaffold);
@@ -178,6 +170,40 @@ class CustomImageBuilder extends MarkdownElementBuilder {
       }
     } catch (e) {
       _showErrorMessage(scaffold, '保存失败: $e');
+    }
+  }
+  
+  // Android平台保存图像到相册
+  Future<void> _saveImageToGalleryOnAndroid(Uint8List imageBytes, ScaffoldMessengerState scaffold) async {
+    try {
+      // 获取临时目录路径
+      final tempDir = await getTemporaryDirectory();
+      final fileName = 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final filePath = '${tempDir.path}/$fileName';
+      
+      // 保存到临时文件
+      final file = File(filePath);
+      await file.writeAsBytes(imageBytes);
+      
+      // 使用平台通道保存到相册
+      const platform = MethodChannel('com.example.gemchat/gallery');
+      try {
+        // 调用原生方法保存图片到相册
+        final result = await platform.invokeMethod('saveImageToGallery', {
+          'filePath': filePath,
+          'fileName': fileName,
+        });
+        
+        scaffold.hideCurrentSnackBar();
+        scaffold.showSnackBar(
+          SnackBar(content: Text('图像已保存到相册')),
+        );
+      } on PlatformException catch (e) {
+        // 如果平台通道不可用，尝试使用FilePicker作为备选方案
+        _saveImageWithFilePicker(imageBytes, scaffold);
+      }
+    } catch (e) {
+      _showErrorMessage(scaffold, '保存到相册失败: $e');
     }
   }
   

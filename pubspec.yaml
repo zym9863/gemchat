@@ -42,7 +42,7 @@ dependencies:
   flutter_highlight: ^0.7.0
   audioplayers: ^5.2.1
   path_provider: ^2.1.5
-  image_gallery_saver: ^2.0.3
+  # 移除 image_gallery_saver 依赖，使用自定义实现
 
 dev_dependencies:
   flutter_test:

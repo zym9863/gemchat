@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
-import '../widgets/custom_image_builder.dart';
+import '../widgets/custom_image_builder_new.dart';
 import 'package:provider/provider.dart';
 import '../providers/chat_provider.dart';
 import '../models/chat_message.dart';
