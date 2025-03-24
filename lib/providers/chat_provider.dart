@@ -128,14 +128,30 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  // 图像生成功能仅使用默认模型
+  // 图像生成功能
+  
+  // 获取当前选择的尺寸选项
+  String getCurrentImageSizeOption() {
+    return _imageGenerationService.getCurrentSizeOption();
+  }
+  
+  // 获取所有可用的尺寸选项
+  List<String> getAvailableImageSizeOptions() {
+    return _imageGenerationService.getAvailableSizeOptions();
+  }
+  
+  // 设置当前尺寸选项
+  void setCurrentImageSizeOption(String sizeOption) {
+    _imageGenerationService.setCurrentSizeOption(sizeOption);
+    notifyListeners();
+  }
   
   // 生成图像
-  Future<String> generateImage(String prompt, {int width = 1024, int height = 1024}) async {
+  Future<String> generateImage(String prompt) async {
     if (!isImageGenerationEnabled) {
       throw Exception('图像生成功能未启用');
     }
-    return await _imageGenerationService.generateImage(prompt, width: width, height: height);
+    return await _imageGenerationService.generateImage(prompt);
   }
 
   void createNewSession() {

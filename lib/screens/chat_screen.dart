@@ -177,6 +177,45 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
   }
+  
+  // 显示图像尺寸选择对话框
+  void _showImageSizeDialog(BuildContext context) {
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final currentSize = chatProvider.getCurrentImageSizeOption();
+    final sizeOptions = chatProvider.getAvailableImageSizeOptions();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('选择图像尺寸'),
+        content: Container(
+          width: double.minPositive,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: sizeOptions.map((option) => 
+              RadioListTile<String>(
+                title: Text(option),
+                value: option,
+                groupValue: currentSize,
+                onChanged: (value) {
+                  if (value != null) {
+                    chatProvider.setCurrentImageSizeOption(value);
+                    Navigator.of(context).pop();
+                  }
+                },
+              )
+            ).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('取消'),
+          ),
+        ],
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     final appTheme = Provider.of<AppTheme>(context);
@@ -466,7 +505,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 },
                               ),
                               
-                              // 图像生成开关
+                              // 图像生成开关和尺寸选择
                               Consumer<ChatProvider>(
                                 builder: (context, chatProvider, child) {
                                   return Row(
@@ -482,6 +521,32 @@ class _ChatScreenState extends State<ChatScreen> {
                                         '图像生成',
                                         style: TextStyle(fontSize: 12),
                                       ),
+                                      SizedBox(width: 4),
+                                      if (chatProvider.isImageGenerationEnabled)
+                                        InkWell(
+                                          onTap: () {
+                                            _showImageSizeDialog(context);
+                                          },
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.grey[800]
+                                                  : Colors.grey[200],
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  chatProvider.getCurrentImageSizeOption(),
+                                                  style: TextStyle(fontSize: 10),
+                                                ),
+                                                Icon(Icons.arrow_drop_down, size: 14),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                                       SizedBox(width: 4),
                                       Tooltip(
                                         message: '启用AI图像生成功能',
