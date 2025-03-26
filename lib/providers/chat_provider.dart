@@ -20,6 +20,7 @@ class ChatProvider extends ChangeNotifier {
   bool _isCancelled = false;
   bool _isWebSearchEnabled = false; // 控制是否启用联网搜索
   bool _isImageGenerationEnabled = false; // 控制是否启用图像生成功能
+  String _searchQuery = ''; // 搜索关键词
 
   List<String> get availableModels => GeminiService.availableModels;
   String get currentModel => _geminiService.getCurrentModel();
@@ -29,7 +30,41 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<ChatSession> get sessions => List.unmodifiable(_sessions);
+  // 获取搜索关键词
+  String get searchQuery => _searchQuery;
+  
+  // 设置搜索关键词
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+  
+  // 获取过滤后的会话列表
+  List<ChatSession> get sessions {
+    if (_searchQuery.isEmpty) {
+      return List.unmodifiable(_sessions);
+    }
+    
+    // 根据搜索关键词过滤会话
+    final filteredSessions = _sessions.where((session) {
+      // 在会话标题中搜索
+      if (session.title.toLowerCase().contains(_searchQuery.toLowerCase())) {
+        return true;
+      }
+      
+      // 在会话消息内容中搜索
+      for (final message in session.messages) {
+        if (message is ChatMessage && 
+            message.content.toLowerCase().contains(_searchQuery.toLowerCase())) {
+          return true;
+        }
+      }
+      
+      return false;
+    }).toList();
+    
+    return List.unmodifiable(filteredSessions);
+  }
   ChatSession? get currentSession => _currentSessionId != null 
       ? _sessions.firstWhere((s) => s.id == _currentSessionId, orElse: () => _createNewSession('新对话'))
       : null;

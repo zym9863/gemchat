@@ -7,12 +7,12 @@ class GeminiService {
   static const String _apiEndpoint = '/v1/chat/completions';
   
   static const List<String> availableModels = [
-    'gemini-2.0-pro-exp-02-05',
+    'gemini-2.5-pro-exp-03-25',
     'gemini-2.0-flash-thinking-exp-01-21',
     'gemini-2.0-flash-001'
   ];
   
-  static const String defaultModel = 'gemini-2.0-flash-thinking-exp-01-21';
+  static const String defaultModel = 'gemini-2.5-pro-exp-03-25';
   
   String? _apiKey;
   String _currentModel = defaultModel;

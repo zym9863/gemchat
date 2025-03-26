@@ -912,6 +912,41 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
+          // 搜索框
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            child: Consumer<ChatProvider>(
+              builder: (context, chatProvider, child) {
+                return TextField(
+                  decoration: InputDecoration(
+                    hintText: '搜索聊天记录...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: chatProvider.searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            chatProvider.setSearchQuery('');
+                          },
+                        )
+                      : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.grey[800] 
+                      : Colors.grey[200],
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  ),
+                  onChanged: (value) {
+                    chatProvider.setSearchQuery(value);
+                  },
+                  controller: TextEditingController(text: chatProvider.searchQuery),
+                );
+              },
+            ),
+          ),
           // 聊天会话列表
           Expanded(
             child: Consumer<ChatProvider>(
