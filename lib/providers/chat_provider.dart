@@ -41,12 +41,16 @@ class ChatProvider extends ChangeNotifier {
   
   // 获取过滤后的会话列表
   List<ChatSession> get sessions {
+    // 首先按更新时间降序排序会话列表（新的在前）
+    final sortedSessions = List<ChatSession>.from(_sessions);
+    sortedSessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    
     if (_searchQuery.isEmpty) {
-      return List.unmodifiable(_sessions);
+      return List.unmodifiable(sortedSessions);
     }
     
     // 根据搜索关键词过滤会话
-    final filteredSessions = _sessions.where((session) {
+    final filteredSessions = sortedSessions.where((session) {
       // 在会话标题中搜索
       if (session.title.toLowerCase().contains(_searchQuery.toLowerCase())) {
         return true;
