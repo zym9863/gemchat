@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/theme_service.dart';
 
 class AppTheme with ChangeNotifier {
   static final AppTheme _instance = AppTheme._internal();
@@ -8,8 +9,16 @@ class AppTheme with ChangeNotifier {
   bool _isDarkMode = false;
   bool get isDarkMode => _isDarkMode;
 
-  void toggleTheme() {
+  // 初始化主题，从本地存储加载主题设置
+  Future<void> initTheme() async {
+    _isDarkMode = await ThemeService.getThemeMode();
+    notifyListeners();
+  }
+
+  // 切换主题并保存到本地存储
+  Future<void> toggleTheme() async {
     _isDarkMode = !_isDarkMode;
+    await ThemeService.saveThemeMode(_isDarkMode);
     notifyListeners();
   }
 

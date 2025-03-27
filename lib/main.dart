@@ -4,12 +4,17 @@ import 'providers/chat_provider.dart';
 import 'screens/chat_screen.dart';
 import 'theme/app_theme.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final appTheme = AppTheme();
+  await appTheme.initTheme(); // 初始化主题设置
+  runApp(MyApp(appTheme: appTheme));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AppTheme appTheme;
+  
+  const MyApp({super.key, required this.appTheme});
 
   // This widget is the root of your application.
   @override
@@ -17,7 +22,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => ChatProvider()),
-        ChangeNotifierProvider(create: (context) => AppTheme()),
+        ChangeNotifierProvider.value(value: appTheme),
       ],
       child: Consumer<AppTheme>(
         builder: (context, appTheme, _) {
