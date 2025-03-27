@@ -2,6 +2,8 @@
 
 中文 | [English](README_EN.md)
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/58556cad-53a0-43ca-bfe1-9bf7b4740bda/deploy-status)](https://app.netlify.com/sites/gemchat/deploys)
+
 基于Flutter开发的Gemini AI聊天应用，提供简洁美观的界面和丰富的功能。
 
 ![GemChat应用图标](assets/image_fx_.jpg)
