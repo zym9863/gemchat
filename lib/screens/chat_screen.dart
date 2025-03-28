@@ -5,6 +5,7 @@ import '../widgets/custom_image_builder_new.dart';
 import 'package:provider/provider.dart';
 import '../providers/chat_provider.dart';
 import '../models/chat_message.dart';
+import '../models/chat_session.dart';
 import '../theme/app_theme.dart';
 import 'api_key_screen.dart';
 import 'package:flutter/services.dart';
@@ -847,7 +848,7 @@ class _ChatScreenState extends State<ChatScreen> {
       const SnackBar(content: Text('复制成功')),
     );
   }
-  // 显示编辑对话框
+  // 显示编辑消息对话框
   void _showEditDialog(BuildContext context, ChatMessage message) {
     // 只允许编辑用户消息
     if (!message.isUser) return;
@@ -882,6 +883,45 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (index != -1) {
                   chatProvider.editUserMessage(index, newContent);
                 }
+              }
+              Navigator.of(context).pop();
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // 显示重命名对话框
+  void _showRenameDialog(BuildContext context, ChatSession session) {
+    final TextEditingController renameController = TextEditingController(text: session.title);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('重命名聊天'),
+        content: TextField(
+          controller: renameController,
+          decoration: const InputDecoration(
+            hintText: '输入新的聊天名称',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 1,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              final newTitle = renameController.text.trim();
+              if (newTitle.isNotEmpty) {
+                // 调用ChatProvider的重命名方法
+                Provider.of<ChatProvider>(context, listen: false)
+                    .renameSession(session.id, newTitle);
               }
               Navigator.of(context).pop();
             },
@@ -969,12 +1009,33 @@ class _ChatScreenState extends State<ChatScreen> {
                       selected: isSelected,
                       selectedTileColor: Colors.blue[50],
                       leading: const Icon(Icons.chat_bubble_outline),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 20),
-                        onPressed: () {
-                          Provider.of<ChatProvider>(context, listen: false)
-                              .deleteSession(session.id);
-                        },
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 重命名按钮
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 18),
+                            tooltip: '重命名',
+                            onPressed: () {
+                              _showRenameDialog(context, session);
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(),
+                            splashRadius: 20,
+                          ),
+                          // 删除按钮
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 18),
+                            tooltip: '删除',
+                            onPressed: () {
+                              Provider.of<ChatProvider>(context, listen: false)
+                                  .deleteSession(session.id);
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(),
+                            splashRadius: 20,
+                          ),
+                        ],
                       ),
                       onTap: () {
                         Provider.of<ChatProvider>(context, listen: false)

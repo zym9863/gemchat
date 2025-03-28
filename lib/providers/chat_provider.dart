@@ -550,6 +550,19 @@ ${result['content']}\n""";
     sendMessageToGemini(userMessage.content);
   }
   
+  // 重命名会话标题
+  void renameSession(String sessionId, String newTitle) {
+    if (newTitle.trim().isEmpty) return;
+    
+    final index = _sessions.indexWhere((s) => s.id == sessionId);
+    if (index >= 0) {
+      final updatedSession = _sessions[index].copyWith(title: newTitle);
+      _sessions[index] = updatedSession;
+      _saveSessions();
+      notifyListeners();
+    }
+  }
+  
   void deleteSession(String sessionId) {
     final index = _sessions.indexWhere((s) => s.id == sessionId);
     if (index >= 0) {
