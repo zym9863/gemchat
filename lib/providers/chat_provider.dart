@@ -254,8 +254,8 @@ class ChatProvider extends ChangeNotifier {
       final updatedMessages = [...currentSession!.messages, userMessage];
       _updateCurrentSession(messages: updatedMessages);
       
-      // 更新会话标题（如果是第一条消息）
-      if (currentSession!.messages.length <= 1) {
+      // 更新会话标题（如果是第一条消息且未被手动重命名）
+      if (currentSession!.messages.length <= 1 && !currentSession!.isRenamed) {
         final title = prompt.length > 20 ? '${prompt.substring(0, 20)}...' : prompt;
         _updateCurrentSession(title: title);
       }
@@ -464,8 +464,8 @@ ${result['content']}\n""";
       messages[messages.length - 1] = aiMessage;
       _updateCurrentSession(messages: messages);
       
-      // 更新会话标题（如果是第一条消息）
-      if (currentSession!.messages.length <= 2) {
+      // 更新会话标题（如果是第一条消息且未被手动重命名）
+      if (currentSession!.messages.length <= 2 && !currentSession!.isRenamed) {
         final title = content.length > 20 ? '${content.substring(0, 20)}...' : content;
         _updateCurrentSession(title: title);
       }
@@ -562,7 +562,11 @@ ${result['content']}\n""";
     
     final index = _sessions.indexWhere((s) => s.id == sessionId);
     if (index >= 0) {
-      final updatedSession = _sessions[index].copyWith(title: newTitle);
+      // 设置isRenamed为true，表示已被手动重命名
+      final updatedSession = _sessions[index].copyWith(
+        title: newTitle,
+        isRenamed: true,
+      );
       _sessions[index] = updatedSession;
       _saveSessions();
       notifyListeners();

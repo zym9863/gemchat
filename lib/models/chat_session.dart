@@ -7,6 +7,7 @@ class ChatSession {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isPinned;
+  final bool isRenamed; // 标记会话是否已被手动重命名
 
   ChatSession({
     required this.id,
@@ -15,6 +16,7 @@ class ChatSession {
     required this.createdAt,
     required this.updatedAt,
     this.isPinned = false,
+    this.isRenamed = false, // 默认为false，表示未被手动重命名
   });
 
   factory ChatSession.create(String title) {
@@ -26,6 +28,7 @@ class ChatSession {
       createdAt: now,
       updatedAt: now,
       isPinned: false,
+      isRenamed: false, // 新创建的会话未被手动重命名
     );
   }
 
@@ -34,6 +37,7 @@ class ChatSession {
     List<dynamic>? messages,
     DateTime? updatedAt,
     bool? isPinned,
+    bool? isRenamed,
   }) {
     return ChatSession(
       id: this.id,
@@ -42,6 +46,7 @@ class ChatSession {
       createdAt: this.createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
       isPinned: isPinned ?? this.isPinned,
+      isRenamed: isRenamed ?? this.isRenamed,
     );
   }
   
@@ -54,6 +59,7 @@ class ChatSession {
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
       'isPinned': isPinned,
+      'isRenamed': isRenamed,
     };
   }
   
@@ -68,6 +74,7 @@ class ChatSession {
       createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt']),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(json['updatedAt']),
       isPinned: json['isPinned'] ?? false,
+      isRenamed: json['isRenamed'] ?? false, // 兼容旧数据，默认为false
     );
   }
 }
