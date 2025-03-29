@@ -73,11 +73,12 @@ lib/
 ├── services/              # 服务
 │   ├── gemini_service.dart # Gemini API服务
 │   ├── image_generation_service.dart # 图片生成服务
-│   └── tavily_service.dart # Tavily搜索服务
+│   ├── tavily_service.dart # Tavily搜索服务
+│   └── theme_service.dart # 主题服务
 ├── theme/                 # 主题
 │   └── app_theme.dart     # 应用主题设置
 └── widgets/               # 自定义组件
-    └── custom_image_builder.dart # 自定义图片构建器
+    └── custom_image_builder_new.dart # 自定义图片构建器
 ```
 
 ## 主要依赖

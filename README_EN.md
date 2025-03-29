@@ -73,11 +73,12 @@ lib/
 ├── services/              # Services
 │   ├── gemini_service.dart # Gemini API service
 │   ├── image_generation_service.dart # Image generation service
-│   └── tavily_service.dart # Tavily search service
+│   ├── tavily_service.dart # Tavily search service
+│   └── theme_service.dart # Theme service
 ├── theme/                 # Theme
 │   └── app_theme.dart     # Application theme settings
 └── widgets/               # Custom widgets
-    └── custom_image_builder.dart # Custom image builder
+    └── custom_image_builder_new.dart # Custom image builder
 ```
 
 ## Main Dependencies
