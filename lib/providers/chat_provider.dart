@@ -41,9 +41,15 @@ class ChatProvider extends ChangeNotifier {
   
   // 获取过滤后的会话列表
   List<ChatSession> get sessions {
-    // 首先按更新时间降序排序会话列表（新的在前）
+    // 首先按置顶状态和更新时间排序会话列表（置顶的在最前，然后是按时间降序）
     final sortedSessions = List<ChatSession>.from(_sessions);
-    sortedSessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    sortedSessions.sort((a, b) {
+      // 首先按置顶状态排序
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      // 然后按更新时间降序排序
+      return b.updatedAt.compareTo(a.updatedAt);
+    });
     
     if (_searchQuery.isEmpty) {
       return List.unmodifiable(sortedSessions);
@@ -557,6 +563,18 @@ ${result['content']}\n""";
     final index = _sessions.indexWhere((s) => s.id == sessionId);
     if (index >= 0) {
       final updatedSession = _sessions[index].copyWith(title: newTitle);
+      _sessions[index] = updatedSession;
+      _saveSessions();
+      notifyListeners();
+    }
+  }
+  
+  // 切换会话的置顶状态
+  void toggleSessionPin(String sessionId) {
+    final index = _sessions.indexWhere((s) => s.id == sessionId);
+    if (index >= 0) {
+      final session = _sessions[index];
+      final updatedSession = session.copyWith(isPinned: !session.isPinned);
       _sessions[index] = updatedSession;
       _saveSessions();
       notifyListeners();

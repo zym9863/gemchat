@@ -1009,31 +1009,59 @@ class _ChatScreenState extends State<ChatScreen> {
                       selected: isSelected,
                       selectedTileColor: Colors.blue[50],
                       leading: const Icon(Icons.chat_bubble_outline),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 重命名按钮
-                          IconButton(
-                            icon: const Icon(Icons.edit, size: 18),
-                            tooltip: '重命名',
-                            onPressed: () {
+                      trailing: PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, size: 20),
+                        tooltip: '更多操作',
+                        padding: EdgeInsets.zero,
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'pin':
+                              Provider.of<ChatProvider>(context, listen: false)
+                                  .toggleSessionPin(session.id);
+                              break;
+                            case 'rename':
                               _showRenameDialog(context, session);
-                            },
-                            padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(),
-                            splashRadius: 20,
-                          ),
-                          // 删除按钮
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 18),
-                            tooltip: '删除',
-                            onPressed: () {
+                              break;
+                            case 'delete':
                               Provider.of<ChatProvider>(context, listen: false)
                                   .deleteSession(session.id);
-                            },
-                            padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(),
-                            splashRadius: 20,
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem<String>(
+                            value: 'pin',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  session.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                                  size: 18,
+                                  color: session.isPinned ? Colors.blue : null,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(session.isPinned ? '取消置顶' : '置顶'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'rename',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.edit, size: 18),
+                                const SizedBox(width: 8),
+                                const Text('重命名'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.delete_outline, size: 18),
+                                const SizedBox(width: 8),
+                                const Text('删除'),
+                              ],
+                            ),
                           ),
                         ],
                       ),

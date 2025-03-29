@@ -6,6 +6,7 @@ class ChatSession {
   final List<dynamic> messages;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isPinned;
 
   ChatSession({
     required this.id,
@@ -13,6 +14,7 @@ class ChatSession {
     required this.messages,
     required this.createdAt,
     required this.updatedAt,
+    this.isPinned = false,
   });
 
   factory ChatSession.create(String title) {
@@ -23,6 +25,7 @@ class ChatSession {
       messages: [],
       createdAt: now,
       updatedAt: now,
+      isPinned: false,
     );
   }
 
@@ -30,6 +33,7 @@ class ChatSession {
     String? title,
     List<dynamic>? messages,
     DateTime? updatedAt,
+    bool? isPinned,
   }) {
     return ChatSession(
       id: this.id,
@@ -37,6 +41,7 @@ class ChatSession {
       messages: messages ?? this.messages,
       createdAt: this.createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
+      isPinned: isPinned ?? this.isPinned,
     );
   }
   
@@ -48,6 +53,7 @@ class ChatSession {
       'messages': messages.map((msg) => msg is ChatMessage ? msg.toJson() : msg).toList(),
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
+      'isPinned': isPinned,
     };
   }
   
@@ -61,6 +67,7 @@ class ChatSession {
           .toList(),
       createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt']),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(json['updatedAt']),
+      isPinned: json['isPinned'] ?? false,
     );
   }
 }
