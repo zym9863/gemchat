@@ -17,6 +17,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'platform_utils.dart';
+import 'dart:math';
 // 移除不存在的导入,使用自定义深色主题
 final githubDarkTheme = {
   'root': TextStyle(
@@ -450,7 +451,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 Expanded(
                   child: Container(
-                    constraints: BoxConstraints(maxHeight: 120),
+                    constraints: BoxConstraints(
+                      minHeight: 120,
+                      maxHeight: _messageController.text.isEmpty ? 120 : 
+                                 min(120 + _messageController.text.split('\n').length * 20, 240),
+                    ),
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(24),
@@ -588,7 +593,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                   helperStyle: TextStyle(fontSize: 12),
                                   contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 ),
-                                maxLines: null,
+                                minLines: 1,
+                                maxLines: 6,
                                 keyboardType: TextInputType.multiline,
                                 scrollPhysics: BouncingScrollPhysics(),
                                 style: TextStyle(fontSize: 16),
