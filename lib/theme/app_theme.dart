@@ -8,10 +8,19 @@ class AppTheme with ChangeNotifier {
 
   bool _isDarkMode = false;
   bool get isDarkMode => _isDarkMode;
+  
+  // 字体大小设置，默认为16
+  double _fontSize = 16.0;
+  double get fontSize => _fontSize;
+  
+  // 字体大小范围
+  static const double minFontSize = 12.0;
+  static const double maxFontSize = 24.0;
 
   // 初始化主题，从本地存储加载主题设置
   Future<void> initTheme() async {
     _isDarkMode = await ThemeService.getThemeMode();
+    _fontSize = await ThemeService.getFontSize();
     notifyListeners();
   }
 
@@ -19,6 +28,14 @@ class AppTheme with ChangeNotifier {
   Future<void> toggleTheme() async {
     _isDarkMode = !_isDarkMode;
     await ThemeService.saveThemeMode(_isDarkMode);
+    notifyListeners();
+  }
+  
+  // 设置字体大小并保存到本地存储
+  Future<void> setFontSize(double size) async {
+    // 确保字体大小在允许的范围内
+    _fontSize = size.clamp(minFontSize, maxFontSize);
+    await ThemeService.saveFontSize(_fontSize);
     notifyListeners();
   }
 

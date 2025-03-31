@@ -218,6 +218,67 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
+  
+  // 显示字体大小调节对话框
+  void _showFontSizeDialog(BuildContext context) {
+    final appTheme = Provider.of<AppTheme>(context, listen: false);
+    double currentFontSize = appTheme.fontSize;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('调整字体大小'),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Container(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('A', style: TextStyle(fontSize: 12)),
+                      Text('A', style: TextStyle(fontSize: 24)),
+                    ],
+                  ),
+                  Slider(
+                    value: currentFontSize,
+                    min: AppTheme.minFontSize,
+                    max: AppTheme.maxFontSize,
+                    divisions: ((AppTheme.maxFontSize - AppTheme.minFontSize) ~/ 1).toInt(),
+                    label: currentFontSize.toStringAsFixed(1),
+                    onChanged: (value) {
+                      setState(() {
+                        currentFontSize = value;
+                      });
+                    },
+                  ),
+                  Text(
+                    '预览文本',
+                    style: TextStyle(fontSize: currentFontSize),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              appTheme.setFontSize(currentFontSize);
+              Navigator.of(context).pop();
+            },
+            child: Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     final appTheme = Provider.of<AppTheme>(context);
@@ -562,6 +623,19 @@ class _ChatScreenState extends State<ChatScreen> {
                                   );
                                 },
                               ),
+                              
+                              // 字体大小调节按钮
+                              Consumer<AppTheme>(
+                                builder: (context, appTheme, child) {
+                                  return IconButton(
+                                    icon: Icon(Icons.format_size),
+                                    tooltip: '调整字体大小',
+                                    onPressed: () {
+                                      _showFontSizeDialog(context);
+                                    },
+                                  );
+                                },
+                              ),
                             ],
                           ),
                         ),
@@ -686,6 +760,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ? Text(
                           message.content,
                           style: TextStyle(
+                            fontSize: Provider.of<AppTheme>(context).fontSize,
                             color: Theme.of(context).brightness == Brightness.dark
                                 ? Colors.white
                                 : Colors.black87,
@@ -696,6 +771,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           ? Text(
                               message.content,
                               style: TextStyle(
+                                fontSize: Provider.of<AppTheme>(context).fontSize,
                                 color: Theme.of(context).brightness == Brightness.dark
                                     ? Colors.white
                                     : Colors.black87,
@@ -706,14 +782,34 @@ class _ChatScreenState extends State<ChatScreen> {
                               selectable: true,
                               styleSheet: MarkdownStyleSheet(
                                 p: TextStyle(
+                                  fontSize: Provider.of<AppTheme>(context).fontSize,
                                   color: Theme.of(context).brightness == Brightness.dark
                                       ? Colors.white
                                       : Colors.black87,
                                 ),
                                 code: TextStyle(
+                                  fontSize: Provider.of<AppTheme>(context).fontSize,
                                   backgroundColor: Theme.of(context).brightness == Brightness.dark
                                       ? Colors.grey[850]
                                       : Colors.grey[200],
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                                h1: TextStyle(
+                                  fontSize: Provider.of<AppTheme>(context).fontSize * 1.5,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                                h2: TextStyle(
+                                  fontSize: Provider.of<AppTheme>(context).fontSize * 1.4,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                                h3: TextStyle(
+                                  fontSize: Provider.of<AppTheme>(context).fontSize * 1.3,
                                   color: Theme.of(context).brightness == Brightness.dark
                                       ? Colors.white
                                       : Colors.black87,
