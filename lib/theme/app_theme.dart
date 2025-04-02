@@ -45,6 +45,7 @@ class AppTheme with ChangeNotifier {
       seedColor: Colors.blue,
       brightness: Brightness.light,
     ),
+    fontFamily: "Microsoft YaHei",  // 设置中文字体
     appBarTheme: const AppBarTheme(
       centerTitle: true,
       elevation: 0,
@@ -84,6 +85,7 @@ class AppTheme with ChangeNotifier {
       seedColor: Colors.blue,
       brightness: Brightness.dark,
     ),
+    fontFamily: "Microsoft YaHei",  // 设置中文字体
     appBarTheme: AppBarTheme(
       centerTitle: true,
       elevation: 0,
