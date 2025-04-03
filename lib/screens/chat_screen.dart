@@ -10,7 +10,6 @@ import '../theme/app_theme.dart';
 import 'api_key_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
-import 'package:flutter_highlight/themes/github.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
@@ -18,22 +17,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'platform_utils.dart';
 import 'dart:math';
-// 移除不存在的导入,使用自定义深色主题
-final githubDarkTheme = {
-  'root': TextStyle(
-    backgroundColor: Color(0xFF0d1117),
-    color: Color(0xFFc9d1d9),
-  ),
-  'keyword': TextStyle(color: Color(0xFFff7b72)),
-  'string': TextStyle(color: Color(0xFFa5d6ff)),
-  'comment': TextStyle(color: Color(0xFF8b949e)),
-  'number': TextStyle(color: Color(0xFFd2a8ff)),
-  'literal': TextStyle(color: Color(0xFFd2a8ff)),
-  'tag': TextStyle(color: Color(0xFF7ee787)),
-  'attr-name': TextStyle(color: Color(0xFF79c0ff)),
-  'attr-value': TextStyle(color: Color(0xFFa5d6ff)),
-  'punctuation': TextStyle(color: Color(0xFFc9d1d9)),
-};
+import 'package:flutter_highlight/themes/atom-one-dark.dart'; // 导入 Atom One Dark 主题
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -1248,11 +1232,12 @@ class CustomCodeBlockBuilder extends MarkdownElementBuilder {
               HighlightView(
                 codeContent,
                 language: language ?? 'plaintext',
-                theme: Theme.of(context).brightness == Brightness.dark
-                    ? githubDarkTheme
-                    : githubTheme,
+                theme: atomOneDarkTheme, // 使用 Atom One Dark 主题
                 padding: EdgeInsets.zero,
-                textStyle: TextStyle(fontFamily: 'monospace'),
+                textStyle: TextStyle(
+                  fontFamily: 'Microsoft YaHei',
+                  fontSize: Provider.of<AppTheme>(context).fontSize,
+                ),
               ),
             ],
           ),
