@@ -17,7 +17,8 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'platform_utils.dart';
 import 'dart:math';
-import 'package:flutter_highlight/themes/atom-one-dark.dart'; // 导入 Atom One Dark 主题
+import 'package:flutter_highlight/themes/atom-one-dark.dart';
+import 'package:url_launcher/url_launcher.dart'; // 导入 Atom One Dark 主题
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -764,6 +765,20 @@ class _ChatScreenState extends State<ChatScreen> {
                           : MarkdownBody(
                               data: message.content,
                               selectable: true,
+                              onTapLink: (text, href, title) async {
+                                if (href != null) {
+                                  final uri = Uri.parse(href);
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                  } else {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('无法打开链接: $href')),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
                               styleSheet: MarkdownStyleSheet(
                                 p: TextStyle(
                                   fontSize: Provider.of<AppTheme>(context).fontSize,
