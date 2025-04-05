@@ -364,7 +364,10 @@ class _ChatScreenState extends State<ChatScreen> {
                         chatProvider.isLoading) {
                       return _buildMessageItem(message, isStreaming: true);
                     }
-                    return _buildMessageItem(message);
+                    return GestureDetector(
+  onLongPress: () => _showTextSelectionDialog(context, message.content),
+  child: _buildMessageItem(message),
+);
                   },
                 );
               },
@@ -994,7 +997,24 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
   
-  // 显示重命名对话框
+  // 显示文本选择对话框
+void _showTextSelectionDialog(BuildContext context, String text) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('选择文本'),
+      content: SelectableText(text),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('关闭'),
+        ),
+      ],
+    ),
+  );
+}
+
+// 显示重命名对话框
   void _showRenameDialog(BuildContext context, ChatSession session) {
     final TextEditingController renameController = TextEditingController(text: session.title);
     
