@@ -744,7 +744,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                   // 消息内容
-                  message.isUser
+                  isStreaming
+                      // 流式响应时使用普通Text避免Markdown解析错误
                       ? Text(
                           message.content,
                           style: TextStyle(
@@ -754,18 +755,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 : Colors.black87,
                           ),
                         )
-                      : isStreaming
-                          // 流式响应时使用普通Text避免Markdown解析错误
-                          ? Text(
-                              message.content,
-                              style: TextStyle(
-                                fontSize: Provider.of<AppTheme>(context).fontSize,
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white
-                                    : Colors.black87,
-                              ),
-                            )
-                          : MarkdownBody(
+                      : MarkdownBody(
                               data: message.content,
                               selectable: true,
                               onTapLink: (text, href, title) async {
