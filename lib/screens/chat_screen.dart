@@ -1043,26 +1043,148 @@ void _showTextSelectionDialog(BuildContext context, String text) {
     );
   }
   // 构建侧边栏
+  bool _isMultiSelectMode = false; // 是否处于多选模式
+  Set<String> _selectedSessionIds = {}; // 已选择的会话ID集合
+  
+  // 切换多选模式
+  void _toggleMultiSelectMode() {
+    setState(() {
+      _isMultiSelectMode = !_isMultiSelectMode;
+      // 退出多选模式时清空选择
+      if (!_isMultiSelectMode) {
+        _selectedSessionIds.clear();
+      }
+    });
+  }
+  
+  // 切换会话选择状态
+  void _toggleSessionSelection(String sessionId) {
+    setState(() {
+      if (_selectedSessionIds.contains(sessionId)) {
+        _selectedSessionIds.remove(sessionId);
+      } else {
+        _selectedSessionIds.add(sessionId);
+      }
+    });
+  }
+  
+  // 全选/取消全选
+  void _toggleSelectAll(List<ChatSession> sessions) {
+    setState(() {
+      if (_selectedSessionIds.length == sessions.length) {
+        // 如果已全选，则取消全选
+        _selectedSessionIds.clear();
+      } else {
+        // 否则全选
+        _selectedSessionIds = sessions.map((session) => session.id).toSet();
+      }
+    });
+  }
+  
+  // 删除选中的会话
+  void _deleteSelectedSessions() {
+    if (_selectedSessionIds.isEmpty) return;
+    
+    // 显示确认对话框
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('删除会话'),
+        content: Text('确定要删除选中的 ${_selectedSessionIds.length} 个会话吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              // 调用批量删除方法
+              Provider.of<ChatProvider>(context, listen: false)
+                  .deleteMultipleSessions(_selectedSessionIds.toList());
+              
+              // 退出多选模式
+              setState(() {
+                _isMultiSelectMode = false;
+                _selectedSessionIds.clear();
+              });
+              
+              Navigator.of(context).pop();
+            },
+            child: Text('删除'),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+          ),
+        ],
+      ),
+    );
+  }
+  
   Widget _buildSidebar() {
     return Container(
       color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[850] : Colors.grey[100],
       child: Column(
         children: [
-          // 新建聊天按钮
+          // 顶部操作栏
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-                chatProvider.createNewSession();
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('新建聊天'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(40),
-              ),
+            child: Row(
+              children: [
+                // 新建聊天按钮
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isMultiSelectMode ? null : () {
+                      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+                      chatProvider.createNewSession();
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('新建聊天'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(40),
+                    ),
+                  ),
+                ),
+                // 多选模式切换按钮
+                IconButton(
+                  icon: Icon(_isMultiSelectMode ? Icons.close : Icons.delete_sweep),
+                  tooltip: _isMultiSelectMode ? '退出多选' : '多选删除',
+                  onPressed: _toggleMultiSelectMode,
+                ),
+              ],
             ),
           ),
+          
+          // 多选模式下的操作栏
+          if (_isMultiSelectMode)
+            Consumer<ChatProvider>(
+              builder: (context, chatProvider, child) {
+                final sessions = chatProvider.sessions;
+                final isAllSelected = _selectedSessionIds.length == sessions.length && sessions.isNotEmpty;
+                
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // 全选/取消全选按钮
+                      TextButton.icon(
+                        icon: Icon(isAllSelected ? Icons.deselect : Icons.select_all),
+                        label: Text(isAllSelected ? '取消全选' : '全选'),
+                        onPressed: () => _toggleSelectAll(sessions),
+                      ),
+                      // 删除选中项按钮
+                      TextButton.icon(
+                        icon: const Icon(Icons.delete_outline),
+                        label: Text('删除(${_selectedSessionIds.length})'),
+                        onPressed: _selectedSessionIds.isEmpty ? null : _deleteSelectedSessions,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          
           // 搜索框
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -1094,10 +1216,12 @@ void _showTextSelectionDialog(BuildContext context, String text) {
                     chatProvider.setSearchQuery(value);
                   },
                   controller: TextEditingController(text: chatProvider.searchQuery),
+                  enabled: !_isMultiSelectMode, // 多选模式下禁用搜索
                 );
               },
             ),
           ),
+          
           // 聊天会话列表
           Expanded(
             child: Consumer<ChatProvider>(
@@ -1110,6 +1234,7 @@ void _showTextSelectionDialog(BuildContext context, String text) {
                   itemBuilder: (context, index) {
                     final session = sessions[index];
                     final isSelected = currentSession?.id == session.id;
+                    final isChecked = _selectedSessionIds.contains(session.id);
                     
                     return ListTile(
                       title: Text(
@@ -1117,68 +1242,83 @@ void _showTextSelectionDialog(BuildContext context, String text) {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      selected: isSelected,
+                      selected: !_isMultiSelectMode && isSelected,
                       selectedTileColor: Colors.blue[50],
-                      leading: const Icon(Icons.chat_bubble_outline),
-                      trailing: PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert, size: 20),
-                        tooltip: '更多操作',
-                        padding: EdgeInsets.zero,
-                        onSelected: (value) {
-                          switch (value) {
-                            case 'pin':
-                              Provider.of<ChatProvider>(context, listen: false)
-                                  .toggleSessionPin(session.id);
-                              break;
-                            case 'rename':
-                              _showRenameDialog(context, session);
-                              break;
-                            case 'delete':
-                              Provider.of<ChatProvider>(context, listen: false)
-                                  .deleteSession(session.id);
-                              break;
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          PopupMenuItem<String>(
-                            value: 'pin',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  session.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                                  size: 18,
-                                  color: session.isPinned ? Colors.blue : null,
+                      leading: _isMultiSelectMode
+                          ? Checkbox(
+                              value: isChecked,
+                              onChanged: (value) {
+                                _toggleSessionSelection(session.id);
+                              },
+                            )
+                          : const Icon(Icons.chat_bubble_outline),
+                      trailing: _isMultiSelectMode
+                          ? null
+                          : PopupMenuButton<String>(
+                              icon: const Icon(Icons.more_vert, size: 20),
+                              tooltip: '更多操作',
+                              padding: EdgeInsets.zero,
+                              onSelected: (value) {
+                                switch (value) {
+                                  case 'pin':
+                                    Provider.of<ChatProvider>(context, listen: false)
+                                        .toggleSessionPin(session.id);
+                                    break;
+                                  case 'rename':
+                                    _showRenameDialog(context, session);
+                                    break;
+                                  case 'delete':
+                                    Provider.of<ChatProvider>(context, listen: false)
+                                        .deleteSession(session.id);
+                                    break;
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                PopupMenuItem<String>(
+                                  value: 'pin',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        session.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                                        size: 18,
+                                        color: session.isPinned ? Colors.blue : null,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(session.isPinned ? '取消置顶' : '置顶'),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
-                                Text(session.isPinned ? '取消置顶' : '置顶'),
+                                PopupMenuItem<String>(
+                                  value: 'rename',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.edit, size: 18),
+                                      const SizedBox(width: 8),
+                                      const Text('重命名'),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem<String>(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.delete_outline, size: 18),
+                                      const SizedBox(width: 8),
+                                      const Text('删除'),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'rename',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.edit, size: 18),
-                                const SizedBox(width: 8),
-                                const Text('重命名'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.delete_outline, size: 18),
-                                const SizedBox(width: 8),
-                                const Text('删除'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
                       onTap: () {
-                        Provider.of<ChatProvider>(context, listen: false)
-                            .switchSession(session.id);
+                        if (_isMultiSelectMode) {
+                          // 多选模式下点击切换选择状态
+                          _toggleSessionSelection(session.id);
+                        } else {
+                          // 正常模式下切换会话
+                          Provider.of<ChatProvider>(context, listen: false)
+                              .switchSession(session.id);
+                        }
                       },
                     );
                   },

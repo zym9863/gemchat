@@ -604,4 +604,37 @@ ${result['content']}\n""";
       notifyListeners();
     }
   }
+  
+  // 批量删除多个会话
+  void deleteMultipleSessions(List<String> sessionIds) {
+    if (sessionIds.isEmpty) return;
+    
+    bool needSwitchSession = false;
+    
+    // 删除所有选中的会话
+    for (final sessionId in sessionIds) {
+      final index = _sessions.indexWhere((s) => s.id == sessionId);
+      if (index >= 0) {
+        _sessions.removeAt(index);
+        
+        // 检查是否删除了当前会话
+        if (_currentSessionId == sessionId) {
+          needSwitchSession = true;
+        }
+      }
+    }
+    
+    // 如果删除了当前会话，切换到其他会话或创建新会话
+    if (needSwitchSession) {
+      if (_sessions.isNotEmpty) {
+        _currentSessionId = _sessions.first.id;
+      } else {
+        createNewSession();
+        return; // createNewSession已经调用了_saveSessions
+      }
+    }
+    
+    _saveSessions();
+    notifyListeners();
+  }
 }
