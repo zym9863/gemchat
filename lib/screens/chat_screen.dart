@@ -32,6 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _imagePromptController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isSidebarExpanded = true; // 控制侧边栏是否展开
+  bool _showScrollToBottom = false; // 控制回到底部按钮的显示
   final AudioPlayer _audioPlayer = AudioPlayer();
   final String _soundEffectPath = 'sound-effect-1742042141417.mp3';
   String? _selectedImagePath; // 存储选择的图片路径
@@ -44,9 +45,29 @@ class _ChatScreenState extends State<ChatScreen> {
       _checkApiKey();
     });
     
+    // 添加滚动监听
+    _scrollController.addListener(() {
+      final showButton = _scrollController.position.pixels > 200;
+      if (showButton != _showScrollToBottom) {
+        setState(() {
+          _showScrollToBottom = showButton;
+        });
+      }
+    });
+    
     // 添加键盘焦点监听
     _messageController.addListener(() {
       setState(() {});
+    });
+
+    // 添加滚动监听
+    _scrollController.addListener(() {
+      final showButton = _scrollController.position.pixels > 200;
+      if (showButton != _showScrollToBottom) {
+        setState(() {
+          _showScrollToBottom = showButton;
+        });
+      }
     });
   }
   Future<void> _checkApiKey() async {
@@ -270,6 +291,17 @@ class _ChatScreenState extends State<ChatScreen> {
     final isDarkMode = appTheme.isDarkMode;
     
     return Scaffold(
+      floatingActionButton: _showScrollToBottom ? FloatingActionButton(
+        mini: true,
+        child: Icon(Icons.arrow_downward),
+        onPressed: () {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        },
+      ) : null,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.menu),
