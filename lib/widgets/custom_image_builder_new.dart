@@ -28,17 +28,20 @@ class CustomImageBuilder extends MarkdownElementBuilder {
         // 图像容器
         Stack(
           children: [
-            Container(
-              constraints: const BoxConstraints(
-                maxWidth: 400, // 限制最大宽度
-                maxHeight: 300, // 限制最大高度
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.contain, // 保持原始比例
-                  loadingBuilder: (context, child, loadingProgress) {
+            Builder(
+              builder: (BuildContext context) => GestureDetector(
+                onTap: () => _showFullScreenImage(context, imageUrl),
+                child: Container(
+                constraints: const BoxConstraints(
+                  maxWidth: 400, // 限制最大宽度
+                  maxHeight: 300, // 限制最大高度
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8.0),
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain, // 保持原始比例,
+                    loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
                     return Center(
                       child: CircularProgressIndicator(
@@ -61,6 +64,8 @@ class CustomImageBuilder extends MarkdownElementBuilder {
                   },
                 ),
               ),
+            ),
+            ),
             ),
             // 添加保存按钮
             Positioned(
@@ -98,6 +103,85 @@ class CustomImageBuilder extends MarkdownElementBuilder {
             ),
           ),
       ],
+    );
+  }
+  
+  // 显示全屏图像
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: Stack(
+          children: [
+            // 图像显示区域，支持缩放
+            InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Center(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      padding: const EdgeInsets.all(16.0),
+                      color: Colors.red[100],
+                      child: Text(
+                        '图像加载失败: $error',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            // 关闭按钮
+            Positioned(
+              top: 16,
+              right: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                  tooltip: '关闭',
+                ),
+              ),
+            ),
+            // 保存按钮
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.save_alt, color: Colors.white),
+                  onPressed: () => _saveImage(context, imageUrl),
+                  tooltip: '保存图像',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
   

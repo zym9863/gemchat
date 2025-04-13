@@ -756,23 +756,26 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   // 显示图片（如果有）
                   if (message.isUser && message.mediaType == 'image' && message.mediaPath != null)
-                    Container(
-                      margin: EdgeInsets.only(bottom: 8),
-                      constraints: BoxConstraints(
-                        maxHeight: 200,
-                        maxWidth: MediaQuery.of(context).size.width * 0.6,
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: PlatformUtils.isWeb && message.mediaPath!.startsWith('data:image/')
-                          ? Image.network(
-                              message.mediaPath!,
-                              fit: BoxFit.contain,
-                            )
-                          : Image.file(
-                              File(message.mediaPath!),
-                              fit: BoxFit.contain,
-                            ),
+                    GestureDetector(
+                      onTap: () => _showFullScreenImage(context, message.mediaPath!),
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 8),
+                        constraints: BoxConstraints(
+                          maxHeight: 200,
+                          maxWidth: MediaQuery.of(context).size.width * 0.6,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: PlatformUtils.isWeb && message.mediaPath!.startsWith('data:image/')
+                            ? Image.network(
+                                message.mediaPath!,
+                                fit: BoxFit.contain,
+                              )
+                            : Image.file(
+                                File(message.mediaPath!),
+                                fit: BoxFit.contain,
+                              ),
+                        ),
                       ),
                     ),
                   // 消息内容
@@ -1032,6 +1035,77 @@ void _showTextSelectionDialog(BuildContext context, String text) {
           child: Text('关闭'),
         ),
       ],
+    ),
+  );
+}
+
+// 显示全屏图像对话框
+void _showFullScreenImage(BuildContext context, String imagePath) {
+  final bool isWebImage = PlatformUtils.isWeb && imagePath.startsWith('data:image/');
+  final bool isNetworkImage = imagePath.startsWith('http');
+  
+  showDialog(
+    context: context,
+    builder: (context) => Dialog.fullscreen(
+      child: Stack(
+        children: [
+          // 图像显示区域，支持缩放
+          InteractiveViewer(
+            panEnabled: true,
+            boundaryMargin: const EdgeInsets.all(20),
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: Center(
+              child: isNetworkImage || isWebImage
+                ? Image.network(
+                    imagePath,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        padding: const EdgeInsets.all(16.0),
+                        color: Colors.red[100],
+                        child: Text(
+                          '图像加载失败: $error',
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      );
+                    },
+                  )
+                : Image.file(
+                    File(imagePath),
+                    fit: BoxFit.contain,
+                  ),
+            ),
+          ),
+          // 关闭按钮
+          Positioned(
+            top: 16,
+            right: 16,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: '关闭',
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
