@@ -12,7 +12,7 @@
 - 💬 多会话管理，轻松切换不同的对话
 - 🌓 支持亮色/暗色主题切换
 - 🔄 多种Gemini模型可选
-  - gemini-2.5-pro-preview-03-25
+  - gemini-2.5-pro-exp-03-25
   - gemini-2.5-flash-preview-04-17
 - 📋 Markdown格式支持，美观展示AI回复
 - 🔊 聊天音效，提供交互反馈
