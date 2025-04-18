@@ -19,7 +19,6 @@ class ChatProvider extends ChangeNotifier {
   String _streamingContent = '';
   bool _isCancelled = false;
   bool _isWebSearchEnabled = false; // 控制是否启用联网搜索
-  bool _isImageGenerationEnabled = false; // 控制是否启用图像生成功能
   String _searchQuery = ''; // 搜索关键词
 
   List<String> get availableModels => GeminiService.availableModels;

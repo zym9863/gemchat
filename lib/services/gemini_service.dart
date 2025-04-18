@@ -7,12 +7,11 @@ class GeminiService {
   static const String _apiEndpoint = '/v1/chat/completions';
   
   static const List<String> availableModels = [
-    'gemini-2.5-pro-exp-03-25',
-    'gemini-2.0-flash-thinking-exp-01-21',
-    'gemini-2.0-flash-001'
+    'gemini-2.5-pro-preview-03-25',
+    'gemini-2.5-flash-preview-04-17',
   ];
   
-  static const String defaultModel = 'gemini-2.5-pro-exp-03-25';
+  static const String defaultModel = 'gemini-2.5-pro-preview-03-25';
   
   String? _apiKey;
   String _currentModel = defaultModel;
@@ -83,7 +82,7 @@ class GeminiService {
         ...history,
         {'role': 'user', 'content': userContent}
       ],
-      'temperature': 0.7,
+      'temperature': 1,
       'stream': true,
     });
     
