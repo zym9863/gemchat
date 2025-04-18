@@ -12,9 +12,8 @@ A Gemini AI chat application developed with Flutter, providing a clean, beautifu
 - 💬 Multiple chat session management, easily switch between different conversations
 - 🌓 Support for light/dark theme switching
 - 🔄 Multiple Gemini models available
-  - gemini-2.5-pro-exp-03-25
-  - gemini-2.0-flash-thinking-exp-01-21
-  - gemini-2.0-flash-001
+  - gemini-2.5-pro-preview-03-25
+  - gemini-2.5-flash-preview-04-17
 - 📋 Markdown format support, beautifully displaying AI replies
 - 🔊 Chat sound effects, providing interactive feedback
 - 🖼️ Image Features
